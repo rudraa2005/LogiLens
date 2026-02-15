@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package shipment;
+
+option go_package = "github.com/rudraa2005/LogiLens/api-gateway-service/proto/shipmentpb";
+
+service ShipmentService {
+  rpc CreateShipment (CreateShipmentRequest) returns (ShipmentResponse);
+  rpc GetShipment (GetShipmentRequest) returns (ShipmentResponse);
+}
+
+message CreateShipmentRequest {
+  string user_id = 1;
+  string origin = 2;
+  string destination = 3;
+}
+
+message GetShipmentRequest {
+  string shipment_id = 1;
+  string user_id = 2;
+}
+
+message ShipmentResponse {
+  string shipment_id = 1;
+  string user_id = 2;
+  string origin = 3;
+  string destination = 4;
+  string status = 5;
+}
