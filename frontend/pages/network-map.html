@@ -1,0 +1,61 @@
+<div id="network-map" class="screen">
+    <div class="dashboard flex min-h-screen" style="background: var(--color-bg-darkest);">
+        <!-- SIDEBAR -->
+        <div class="main-wrapper" style="margin-left: var(--sidebar-width); flex: 1;">
+            <!-- TOPBAR -->
+            <div class="content p-8">
+                <div class="page-header mb-8">
+                    <h1 class="page-title text-4xl mb-2" style="font-family: var(--font-display); font-weight: 700;">Network Visualization</h1>
+                    <p class="page-subtitle text-gray-400 text-base">Interactive logistics network graph</p>
+                </div>
+                
+                <div class="network-view relative overflow-hidden rounded-xl border mb-8 h-[600px] flex items-center justify-center" style="background: var(--gradient-card); border-color: var(--color-border);">
+                    <div class="network-controls absolute top-6 left-6 flex gap-3">
+                        <button class="control-btn px-4 py-2.5 rounded-lg border text-sm cursor-pointer transition-all" style="background: var(--color-bg-elevated); border-color: var(--color-border-light); color: var(--color-text-primary);">Filter by Region</button>
+                        <button class="control-btn px-4 py-2.5 rounded-lg border text-sm cursor-pointer transition-all" style="background: var(--color-bg-elevated); border-color: var(--color-border-light); color: var(--color-text-primary);">Shortest Path</button>
+                        <button class="control-btn px-4 py-2.5 rounded-lg border text-sm cursor-pointer transition-all" style="background: var(--color-bg-elevated); border-color: var(--color-border-light); color: var(--color-text-primary);">Show Congestion</button>
+                    </div>
+                    <div class="network-placeholder text-7xl opacity-20">🕸️</div>
+                </div>
+                
+                <div class="details-grid grid grid-cols-[1fr_1fr] gap-6">
+                    <div class="metadata-card p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <h3 class="mb-6 text-xl font-semibold">Selected Node Details</h3>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">Node ID</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">CHI-DC-01</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">Location</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">Chicago Distribution</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">Active Routes</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">12</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3">
+                            <span class="text-gray-400 text-sm">Traffic Load</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">68%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metadata-card p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <h3 class="mb-6 text-xl font-semibold">Outgoing Routes</h3>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">CHI → DEN</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">24 active</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">CHI → LAX</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">18 active</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3">
+                            <span class="text-gray-400 text-sm">CHI → NYC</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">31 active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

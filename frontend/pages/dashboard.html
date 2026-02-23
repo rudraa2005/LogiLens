@@ -1,0 +1,122 @@
+<div id="dashboard" class="screen">
+    <div class="dashboard flex min-h-screen" style="background: var(--color-bg-darkest);">
+        <!-- SIDEBAR -->
+        <div class="main-wrapper" style="margin-left: var(--sidebar-width); flex: 1;">
+            <!-- TOPBAR -->
+            <div class="content p-8">
+            <div class="page-header mb-8">
+                <h1 class="page-title text-4xl mb-2" style="font-family: var(--font-display); font-weight: 700;">Dashboard</h1>
+                <p class="page-subtitle text-gray-400 text-base">Real-time logistics operations overview</p>
+            </div>
+            
+            <!-- KPI Cards -->
+            <div class="kpi-grid grid grid-cols-4 gap-6 mb-8">
+                <div class="kpi-card relative overflow-hidden p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                    <div class="kpi-label text-sm text-gray-400 mb-3">Total Shipments</div>
+                    <div class="kpi-value text-4xl font-semibold mb-2" style="font-family: var(--font-mono);">1,284</div>
+                    <div class="kpi-change text-xs" style="font-family: var(--font-mono); color: var(--color-success);">↑ 12.5% vs last month</div>
+                </div>
+                <div class="kpi-card relative overflow-hidden p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                    <div class="kpi-label text-sm text-gray-400 mb-3">Active Shipments</div>
+                    <div class="kpi-value text-4xl font-semibold mb-2" style="font-family: var(--font-mono);">247</div>
+                    <div class="kpi-change text-xs" style="font-family: var(--font-mono); color: var(--color-success);">↑ 8 new today</div>
+                </div>
+                <div class="kpi-card relative overflow-hidden p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                    <div class="kpi-label text-sm text-gray-400 mb-3">Delayed Shipments</div>
+                    <div class="kpi-value text-4xl font-semibold mb-2" style="font-family: var(--font-mono);">18</div>
+                    <div class="kpi-change text-xs" style="font-family: var(--font-mono); color: var(--color-error);">↑ 3 from yesterday</div>
+                </div>
+                <div class="kpi-card relative overflow-hidden p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                    <div class="kpi-label text-sm text-gray-400 mb-3">On-Time Delivery</div>
+                    <div class="kpi-value text-4xl font-semibold mb-2" style="font-family: var(--font-mono);">94.2%</div>
+                    <div class="kpi-change text-xs" style="font-family: var(--font-mono); color: var(--color-success);">↑ 2.1% improvement</div>
+                </div>
+            </div>
+            
+            <!-- Recent Shipments Table -->
+            <div class="table-container overflow-hidden rounded-xl border mb-8" style="background: var(--gradient-card); border-color: var(--color-border);">
+                <div class="table-header px-6 py-5 border-b" style="border-color: var(--color-border);">
+                    <h3 class="table-title text-xl font-semibold">Recent Shipments</h3>
+                </div>
+                <table class="table w-full border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="text-left px-6 py-4 text-xs font-semibold uppercase border-b" style="color: var(--color-text-tertiary); border-color: var(--color-border); background: var(--color-bg-elevated);">Shipment ID</th>
+                            <th class="text-left px-6 py-4 text-xs font-semibold uppercase border-b" style="color: var(--color-text-tertiary); border-color: var(--color-border); background: var(--color-bg-elevated);">Origin</th>
+                            <th class="text-left px-6 py-4 text-xs font-semibold uppercase border-b" style="color: var(--color-text-tertiary); border-color: var(--color-border); background: var(--color-bg-elevated);">Destination</th>
+                            <th class="text-left px-6 py-4 text-xs font-semibold uppercase border-b" style="color: var(--color-text-tertiary); border-color: var(--color-border); background: var(--color-bg-elevated);">Status</th>
+                            <th class="text-left px-6 py-4 text-xs font-semibold uppercase border-b" style="color: var(--color-text-tertiary); border-color: var(--color-border); background: var(--color-bg-elevated);">Risk Level</th>
+                            <th class="text-left px-6 py-4 text-xs font-semibold uppercase border-b" style="color: var(--color-text-tertiary); border-color: var(--color-border); background: var(--color-bg-elevated);">ETA</th>
+                            <th class="text-left px-6 py-4 text-xs font-semibold uppercase border-b" style="color: var(--color-text-tertiary); border-color: var(--color-border); background: var(--color-bg-elevated);">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="transition-colors hover:bg-gray-800" style="background: var(--color-bg-elevated);">
+                            <td class="px-6 py-4 border-b" style="font-family: var(--font-mono); border-color: var(--color-border);">SH-2024-1847</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);">Chicago, IL</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);">Denver, CO</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><span class="badge badge-transit">In Transit</span></td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><span class="badge badge-low">Low</span></td>
+                            <td class="px-6 py-4 border-b" style="font-family: var(--font-mono); border-color: var(--color-border);">Feb 11, 4:30 PM</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><button class="btn btn-primary px-3 py-1.5 text-sm" onclick="switchScreen('shipment-details')">View</button></td>
+                        </tr>
+                        <tr class="transition-colors hover:bg-gray-800" style="background: var(--color-bg-elevated);">
+                            <td class="px-6 py-4 border-b" style="font-family: var(--font-mono); border-color: var(--color-border);">SH-2024-1822</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);">Seattle, WA</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);">Portland, OR</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><span class="badge badge-delayed">Delayed</span></td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><span class="badge badge-high">High</span></td>
+                            <td class="px-6 py-4 border-b" style="font-family: var(--font-mono); border-color: var(--color-border);">Feb 11, 11:00 AM</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><button class="btn btn-primary px-3 py-1.5 text-sm">View</button></td>
+                        </tr>
+                        <tr class="transition-colors hover:bg-gray-800" style="background: var(--color-bg-elevated);">
+                            <td class="px-6 py-4 border-b" style="font-family: var(--font-mono); border-color: var(--color-border);">SH-2024-1801</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);">Los Angeles, CA</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);">Phoenix, AZ</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><span class="badge badge-delivered">Delivered</span></td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><span class="badge badge-low">Low</span></td>
+                            <td class="px-6 py-4 border-b" style="font-family: var(--font-mono); border-color: var(--color-border);">Feb 10, 2:15 PM</td>
+                            <td class="px-6 py-4 border-b" style="border-color: var(--color-border);"><button class="btn btn-primary px-3 py-1.5 text-sm">View</button></td>
+                        </tr>
+                        <tr class="transition-colors hover:bg-gray-800">
+                            <td class="px-6 py-4" style="font-family: var(--font-mono);">SH-2024-1835</td>
+                            <td class="px-6 py-4">Houston, TX</td>
+                            <td class="px-6 py-4">Miami, FL</td>
+                            <td class="px-6 py-4"><span class="badge badge-transit">In Transit</span></td>
+                            <td class="px-6 py-4"><span class="badge badge-medium">Medium</span></td>
+                            <td class="px-6 py-4" style="font-family: var(--font-mono);">Feb 12, 9:00 AM</td>
+                            <td class="px-6 py-4"><button class="btn btn-primary px-3 py-1.5 text-sm">View</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Activity Timeline -->
+            <div class="activity-timeline p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                <h3 class="table-title text-xl font-semibold mb-6">Recent Activity</h3>
+                <div class="timeline-item flex gap-4 py-4 border-b" style="border-color: var(--color-border);">
+                    <div class="timeline-icon w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--color-bg-elevated);">📦</div>
+                    <div class="timeline-content flex-1">
+                        <div class="timeline-title font-semibold mb-1">Shipment SH-2024-1847 departed Chicago</div>
+                        <div class="timeline-meta text-xs text-gray-500" style="font-family: var(--font-mono);">12 minutes ago • Chicago Distribution Center</div>
+                    </div>
+                </div>
+                <div class="timeline-item flex gap-4 py-4 border-b" style="border-color: var(--color-border);">
+                    <div class="timeline-icon w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--color-bg-elevated);">⚠️</div>
+                    <div class="timeline-content flex-1">
+                        <div class="timeline-title font-semibold mb-1">Delay detected on SH-2024-1822</div>
+                        <div class="timeline-meta text-xs text-gray-500" style="font-family: var(--font-mono);">45 minutes ago • Weather conditions</div>
+                    </div>
+                </div>
+                <div class="timeline-item flex gap-4 py-4">
+                    <div class="timeline-icon w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--color-bg-elevated);">✅</div>
+                    <div class="timeline-content flex-1">
+                        <div class="timeline-title font-semibold mb-1">Shipment SH-2024-1801 delivered successfully</div>
+                        <div class="timeline-meta text-xs text-gray-500" style="font-family: var(--font-mono);">2 hours ago • Phoenix Warehouse</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,56 @@
+<div id="analytics" class="screen">
+    <div class="dashboard flex min-h-screen" style="background: var(--color-bg-darkest);">
+        <!-- SIDEBAR -->
+        <div class="main-wrapper" style="margin-left: var(--sidebar-width); flex: 1;">
+            <!-- TOPBAR -->
+            <div class="content p-8">
+                <div class="page-header mb-8">
+                    <h1 class="page-title text-4xl mb-2" style="font-family: var(--font-display); font-weight: 700;">Analytics Dashboard</h1>
+                    <p class="page-subtitle text-gray-400 text-base">Logistics performance metrics and insights</p>
+                </div>
+                
+                <!-- Filters -->
+                <div class="flex gap-4 mb-8">
+                    <select class="px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;">
+                        <option>Last 7 Days</option>
+                        <option>Last 30 Days</option>
+                        <option>Last Quarter</option>
+                    </select>
+                    <select class="px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;">
+                        <option>All Regions</option>
+                        <option>North America</option>
+                        <option>Europe</option>
+                    </select>
+                    <select class="px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;">
+                        <option>All Transport Modes</option>
+                        <option>Air</option>
+                        <option>Sea</option>
+                        <option>Road</option>
+                    </select>
+                </div>
+                
+                <div class="charts-grid grid grid-cols-2 gap-6 mb-8">
+                    <div class="chart-card p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <h3 class="chart-title text-lg font-semibold mb-5">Shipments per Region</h3>
+                        <div class="chart-placeholder h-[280px] rounded-lg flex items-center justify-center text-gray-500" style="background: var(--color-bg-elevated);">📊 Bar Chart</div>
+                    </div>
+                    
+                    <div class="chart-card p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <h3 class="chart-title text-lg font-semibold mb-5">Delivery Time Distribution</h3>
+                        <div class="chart-placeholder h-[280px] rounded-lg flex items-center justify-center text-gray-500" style="background: var(--color-bg-elevated);">📈 Histogram</div>
+                    </div>
+                    
+                    <div class="chart-card p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <h3 class="chart-title text-lg font-semibold mb-5">Risk Level Breakdown</h3>
+                        <div class="chart-placeholder h-[280px] rounded-lg flex items-center justify-center text-gray-500" style="background: var(--color-bg-elevated);">🥧 Pie Chart</div>
+                    </div>
+                    
+                    <div class="chart-card p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <h3 class="chart-title text-lg font-semibold mb-5">Traffic Load Over Time</h3>
+                        <div class="chart-placeholder h-[280px] rounded-lg flex items-center justify-center text-gray-500" style="background: var(--color-bg-elevated);">📉 Line Chart</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

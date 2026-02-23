@@ -1,0 +1,82 @@
+<div id="shipment-details" class="screen">
+    <div class="dashboard flex min-h-screen" style="background: var(--color-bg-darkest);">
+        <!-- SIDEBAR -->
+        <div class="main-wrapper" style="margin-left: var(--sidebar-width); flex: 1;">
+            <!-- TOPBAR -->
+            <div class="content p-8">
+                <div class="page-header mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="page-title text-4xl mb-3" style="font-family: var(--font-mono); font-weight: 700;">SH-2024-1847</h1>
+                        <div class="flex gap-3">
+                            <span class="badge badge-transit">In Transit</span>
+                            <span class="badge badge-low">Low Risk</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary">Track Live</button>
+                </div>
+                
+                <div class="details-grid grid grid-cols-[2fr_1fr] gap-6 mb-8">
+                    <div class="map-container p-6 rounded-xl border min-h-[400px] flex items-center justify-center" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">🗺️</div>
+                            <div class="text-gray-500 text-base">Route Visualization Map</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metadata-card p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <h3 class="mb-6 text-xl font-semibold">Shipment Details</h3>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">Origin</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">Chicago, IL</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">Destination</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">Denver, CO</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">Current Location</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">North Platte, NE</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">ETA</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">Feb 11, 4:30 PM</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3 border-b" style="border-color: var(--color-border);">
+                            <span class="text-gray-400 text-sm">Priority</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">Medium</span>
+                        </div>
+                        <div class="metadata-row flex justify-between py-3">
+                            <span class="text-gray-400 text-sm">Weight</span>
+                            <span class="font-semibold" style="font-family: var(--font-mono);">1,250 kg</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="activity-timeline p-6 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                    <h3 class="text-xl font-semibold mb-6">Event Timeline</h3>
+                    <div class="timeline-item flex gap-4 py-4 border-b" style="border-color: var(--color-border);">
+                        <div class="timeline-icon w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--color-bg-elevated);">📍</div>
+                        <div class="timeline-content flex-1">
+                            <div class="timeline-title font-semibold mb-1">Currently in transit</div>
+                            <div class="timeline-meta text-xs text-gray-500" style="font-family: var(--font-mono);">2024-02-10 20:45 • North Platte, NE</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item flex gap-4 py-4 border-b" style="border-color: var(--color-border);">
+                        <div class="timeline-icon w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--color-bg-elevated);">🚛</div>
+                        <div class="timeline-content flex-1">
+                            <div class="timeline-title font-semibold mb-1">Departed transit hub</div>
+                            <div class="timeline-meta text-xs text-gray-500" style="font-family: var(--font-mono);">2024-02-10 11:30 • Des Moines, IA</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item flex gap-4 py-4">
+                        <div class="timeline-icon w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: var(--color-bg-elevated);">✅</div>
+                        <div class="timeline-content flex-1">
+                            <div class="timeline-title font-semibold mb-1">Shipment created</div>
+                            <div class="timeline-meta text-xs text-gray-500" style="font-family: var(--font-mono);">2024-02-10 06:00 • Chicago Distribution Center</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

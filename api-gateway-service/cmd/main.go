@@ -9,7 +9,7 @@ import (
 	"github.com/rudraa2005/LogiLens/api-gateway-service/repository"
 	"github.com/rudraa2005/LogiLens/api-gateway-service/router"
 	"github.com/rudraa2005/LogiLens/api-gateway-service/services"
-	"github.com/rudraa2005/LogiLens/api-gateway-service/shipmentpb"
+	shipmentpb "github.com/rudraa2005/LogiLens/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -29,7 +29,7 @@ func main() {
 	client := shipmentpb.NewShipmentServiceClient(conn)
 
 	shipmentService := services.NewShipmentService(client)
-	shipmentHandler := handlers.NewShipmentHandler(*shipmentService)
+	shipmentHandler := handlers.NewShipmentHandler(shipmentService)
 
 	userRepo := repository.NewUserRepository(pool)
 	authService := services.NewAuthService(userRepo)

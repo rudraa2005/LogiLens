@@ -1,0 +1,30 @@
+<div id="login" class="screen">
+    <div class="auth-page min-h-screen flex">
+        <div class="auth-left flex-1 flex flex-col items-center justify-center px-20 relative overflow-hidden" style="background: var(--gradient-hero);">
+            <div class="auth-left::before absolute inset-0" style="background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05) 0%, transparent 50%);"></div>
+            <div class="auth-branding relative z-10">
+                <h1 class="text-5xl mb-4" style="font-family: var(--font-display); font-weight: 700;">LogiLens</h1>
+                <p class="text-lg text-gray-400">Logistics Intelligence Platform</p>
+            </div>
+            <div class="auth-illustration text-8xl mt-12 opacity-30">🌐</div>
+        </div>
+        <div class="auth-right flex-1 flex items-center justify-center px-20" style="background: var(--color-bg-darkest);">
+            <div class="auth-form w-full max-w-md">
+                <h2 class="text-4xl mb-8" style="font-family: var(--font-display); font-weight: 700;">Welcome Back</h2>
+                <div class="mb-6">
+                    <label class="block font-semibold mb-2 text-sm">Email Address</label>
+                    <input type="email" class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;" placeholder="ops@company.com">
+                </div>
+                <div class="mb-6">
+                    <label class="block font-semibold mb-2 text-sm">Password</label>
+                    <input type="password" class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;" placeholder="••••••••">
+                </div>
+                <button class="btn btn-primary w-full mb-4" onclick="switchScreen('dashboard')">Sign In</button>
+                <p class="text-center text-gray-400">
+                    Don't have an account? 
+                    <a href="#" class="text-white font-semibold hover:underline no-underline" onclick="switchScreen('register')">Register</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

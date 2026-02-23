@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/rudraa2005/LogiLens/api-gateway-service/shipmentpb"
+	shipmentpb "github.com/rudraa2005/LogiLens/proto"
 )
 
 type ShipmentService struct {
@@ -28,4 +28,34 @@ func (s *ShipmentService) CreateShipment(ctx context.Context, source string, des
 	}
 
 	return s.client.CreateShipment(ctx, req)
+}
+
+func (s *ShipmentService) GetShipment(ctx context.Context, userID string) (*shipmentpb.ShipmentResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	req := &shipmentpb.GetShipmentRequest{
+		UserId: userID,
+	}
+	return s.client.GetShipment(ctx, req)
+}
+
+func (s *ShipmentService) MarkInTransit(ctx context.Context, shipmentID string) (*shipmentpb.ShipmentResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	req := &shipmentpb.GetShipmentRequest{
+		ShipmentId: shipmentID,
+	}
+	return s.client.MarkInTransit(ctx, req)
+}
+
+func (s *ShipmentService) MarkDelivered(ctx context.Context, shipmentID string) (*shipmentpb.ShipmentResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	req := &shipmentpb.GetShipmentRequest{
+		ShipmentId: shipmentID,
+	}
+	return s.client.MarkInTransit(ctx, req)
 }

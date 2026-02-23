@@ -4,7 +4,7 @@
 // 	protoc        v6.33.4
 // source: proto/shipment.proto
 
-package shipmentpb
+package LogiLens
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -228,10 +228,11 @@ const file_proto_shipment_proto_rawDesc = "" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
 	"\x06origin\x18\x03 \x01(\tR\x06origin\x12 \n" +
 	"\vdestination\x18\x04 \x01(\tR\vdestination\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status2\xa9\x01\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status2\xf4\x01\n" +
 	"\x0fShipmentService\x12M\n" +
 	"\x0eCreateShipment\x12\x1f.shipment.CreateShipmentRequest\x1a\x1a.shipment.ShipmentResponse\x12G\n" +
-	"\vGetShipment\x12\x1c.shipment.GetShipmentRequest\x1a\x1a.shipment.ShipmentResponseB1Z/github.com/rudraa2005/LogiLens/proto/shipmentpbb\x06proto3"
+	"\vGetShipment\x12\x1c.shipment.GetShipmentRequest\x1a\x1a.shipment.ShipmentResponse\x12I\n" +
+	"\rMarkInTransit\x12\x1c.shipment.GetShipmentRequest\x1a\x1a.shipment.ShipmentResponseB Z\x1egithub.com/rudraa2005/LogiLensb\x06proto3"
 
 var (
 	file_proto_shipment_proto_rawDescOnce sync.Once
@@ -254,10 +255,12 @@ var file_proto_shipment_proto_goTypes = []any{
 var file_proto_shipment_proto_depIdxs = []int32{
 	0, // 0: shipment.ShipmentService.CreateShipment:input_type -> shipment.CreateShipmentRequest
 	1, // 1: shipment.ShipmentService.GetShipment:input_type -> shipment.GetShipmentRequest
-	2, // 2: shipment.ShipmentService.CreateShipment:output_type -> shipment.ShipmentResponse
-	2, // 3: shipment.ShipmentService.GetShipment:output_type -> shipment.ShipmentResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	1, // 2: shipment.ShipmentService.MarkInTransit:input_type -> shipment.GetShipmentRequest
+	2, // 3: shipment.ShipmentService.CreateShipment:output_type -> shipment.ShipmentResponse
+	2, // 4: shipment.ShipmentService.GetShipment:output_type -> shipment.ShipmentResponse
+	2, // 5: shipment.ShipmentService.MarkInTransit:output_type -> shipment.ShipmentResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

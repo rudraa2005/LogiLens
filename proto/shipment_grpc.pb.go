@@ -4,7 +4,7 @@
 // - protoc             v6.33.4
 // source: proto/shipment.proto
 
-package shipmentpb
+package LogiLens
 
 import (
 	context "context"
@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ShipmentService_CreateShipment_FullMethodName = "/shipment.ShipmentService/CreateShipment"
 	ShipmentService_GetShipment_FullMethodName    = "/shipment.ShipmentService/GetShipment"
+	ShipmentService_MarkInTransit_FullMethodName  = "/shipment.ShipmentService/MarkInTransit"
 )
 
 // ShipmentServiceClient is the client API for ShipmentService service.
@@ -29,6 +30,7 @@ const (
 type ShipmentServiceClient interface {
 	CreateShipment(ctx context.Context, in *CreateShipmentRequest, opts ...grpc.CallOption) (*ShipmentResponse, error)
 	GetShipment(ctx context.Context, in *GetShipmentRequest, opts ...grpc.CallOption) (*ShipmentResponse, error)
+	MarkInTransit(ctx context.Context, in *GetShipmentRequest, opts ...grpc.CallOption) (*ShipmentResponse, error)
 }
 
 type shipmentServiceClient struct {
@@ -59,12 +61,23 @@ func (c *shipmentServiceClient) GetShipment(ctx context.Context, in *GetShipment
 	return out, nil
 }
 
+func (c *shipmentServiceClient) MarkInTransit(ctx context.Context, in *GetShipmentRequest, opts ...grpc.CallOption) (*ShipmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShipmentResponse)
+	err := c.cc.Invoke(ctx, ShipmentService_MarkInTransit_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ShipmentServiceServer is the server API for ShipmentService service.
 // All implementations must embed UnimplementedShipmentServiceServer
 // for forward compatibility.
 type ShipmentServiceServer interface {
 	CreateShipment(context.Context, *CreateShipmentRequest) (*ShipmentResponse, error)
 	GetShipment(context.Context, *GetShipmentRequest) (*ShipmentResponse, error)
+	MarkInTransit(context.Context, *GetShipmentRequest) (*ShipmentResponse, error)
 	mustEmbedUnimplementedShipmentServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedShipmentServiceServer) CreateShipment(context.Context, *Creat
 }
 func (UnimplementedShipmentServiceServer) GetShipment(context.Context, *GetShipmentRequest) (*ShipmentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetShipment not implemented")
+}
+func (UnimplementedShipmentServiceServer) MarkInTransit(context.Context, *GetShipmentRequest) (*ShipmentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MarkInTransit not implemented")
 }
 func (UnimplementedShipmentServiceServer) mustEmbedUnimplementedShipmentServiceServer() {}
 func (UnimplementedShipmentServiceServer) testEmbeddedByValue()                         {}
@@ -138,6 +154,24 @@ func _ShipmentService_GetShipment_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ShipmentService_MarkInTransit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetShipmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShipmentServiceServer).MarkInTransit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShipmentService_MarkInTransit_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShipmentServiceServer).MarkInTransit(ctx, req.(*GetShipmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ShipmentService_ServiceDesc is the grpc.ServiceDesc for ShipmentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var ShipmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetShipment",
 			Handler:    _ShipmentService_GetShipment_Handler,
+		},
+		{
+			MethodName: "MarkInTransit",
+			Handler:    _ShipmentService_MarkInTransit_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

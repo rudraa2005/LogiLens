@@ -1,0 +1,66 @@
+<div id="create-shipment" class="screen">
+    <div class="dashboard flex min-h-screen" style="background: var(--color-bg-darkest);">
+        <!-- SIDEBAR -->
+        <div class="main-wrapper" style="margin-left: var(--sidebar-width); flex: 1;">
+            <!-- TOPBAR -->
+            <div class="content p-8">
+                <div class="page-header mb-8">
+                    <h1 class="page-title text-4xl mb-2" style="font-family: var(--font-display); font-weight: 700;">Create Shipment</h1>
+                    <p class="page-subtitle text-gray-400 text-base">Add a new shipment to the logistics network</p>
+                </div>
+                
+                <div class="form-container max-w-4xl mx-auto">
+                    <div class="form-card p-8 rounded-xl border" style="background: var(--gradient-card); border-color: var(--color-border);">
+                        <div class="form-grid grid grid-cols-2 gap-6">
+                            <div class="form-group col-span-2">
+                                <label class="block font-semibold mb-2 text-sm">Shipment ID</label>
+                                <input type="text" class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;" placeholder="Auto-generated" disabled>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="block font-semibold mb-2 text-sm">Origin Location</label>
+                                <input type="text" class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;" placeholder="Chicago, IL">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="block font-semibold mb-2 text-sm">Destination Location</label>
+                                <input type="text" class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;" placeholder="Denver, CO">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="block font-semibold mb-2 text-sm">Weight (kg)</label>
+                                <input type="number" class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;" placeholder="1000">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="block font-semibold mb-2 text-sm">Priority</label>
+                                <select class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;">
+                                    <option>Low</option>
+                                    <option>Medium</option>
+                                    <option>High</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group col-span-2">
+                                <label class="block font-semibold mb-2 text-sm">Transport Mode</label>
+                                <select class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;">
+                                    <option>Road</option>
+                                    <option>Air</option>
+                                    <option>Sea</option>
+                                    <option>Rail</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group col-span-2">
+                                <label class="block font-semibold mb-2 text-sm">Intermediate Stops (Optional)</label>
+                                <input type="text" class="w-full px-4 py-3.5 rounded-lg border transition-all focus:outline-none focus:border-gray-500 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.05)]" style="background: var(--color-bg-card); border-color: var(--color-border-light); color: var(--color-text-primary); font-family: var(--font-body); font-size: 15px;" placeholder="Des Moines, IA; North Platte, NE">
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary w-full mt-8" onclick="switchScreen('dashboard')">Create Shipment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
