@@ -33,11 +33,10 @@ type TrafficFetcher interface {
 
 const (
 	defaultTomTomTrafficBaseURL = "https://api.tomtom.com"
-	defaultTomTomTrafficAPIKey  = "yVyanidds6k8iaGvtgfgDaUp2n2791af"
 )
 
 var (
-	trafficAPIKey     = func() string { return firstNonEmpty(os.Getenv("TOMTOM_API_KEY"), defaultTomTomTrafficAPIKey) }()
+	trafficAPIKey     = func() string { return firstNonEmpty(os.Getenv("TOMTOM_API_KEY")) }()
 	trafficBaseURL    = defaultTomTomTrafficBaseURL
 	trafficHTTPClient = &http.Client{Timeout: 10 * time.Second}
 )
