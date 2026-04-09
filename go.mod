@@ -3,6 +3,7 @@ module github.com/rudraa2005/LogiLens
 go 1.24.6
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11

@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package route;
+
+option go_package = "github.com/rudraa2005/LogiLens";
+
+service RouteService {
+    rpc ComputeRoute(RouteRequest) returns (RouteResponse);
+}
+
+message RouteRequest {
+    string source = 1;
+    string destination = 2;
+
+    OptimizationType optimize_by = 3;
+    repeated TransportMode allowed_modes = 4;
+}
+
+message RouteResponse {
+    string route_id = 1;
+
+    repeated RouteStep steps = 2;
+
+    double total_distance = 3;
+    double total_time = 4;
+    double total_cost = 5;
+}
+
+message LatLng {
+    double lat = 1;
+    double lng = 2;
+}
+
+message RouteStep {
+    string from = 1;
+    string to = 2;
+
+    TransportMode mode = 3;
+
+    double distance = 4;
+    double time = 5;
+    double cost = 6;
+
+    repeated LatLng geometry = 7;
+}
+
+enum OptimizationType {
+    DISTANCE = 0;
+    TIME = 1;
+    COST = 2;
+}
+
+enum TransportMode {
+    TRUCK = 0;
+    AIR = 1;
+    RAIL = 2;
+    SHIP = 3;
+}

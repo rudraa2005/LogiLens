@@ -2,7 +2,7 @@
 # Variables
 # ----------------------------
 PROTO_DIR=proto
-PROTO_FILE=$(PROTO_DIR)/shipment.proto
+PROTO_FILE=$(PROTO_DIR)/route.proto
 
 GO_OUT=.
 GRPC_OUT=.
