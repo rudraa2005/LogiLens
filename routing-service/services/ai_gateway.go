@@ -29,6 +29,8 @@ type RouteInsights struct {
 	Error           string  `json:"error,omitempty"`
 }
 
+type EdgeAIFactors map[string]float64
+
 type AIGateway struct {
 	baseURL string
 	client  *http.Client
@@ -88,6 +90,10 @@ type aiRouteResponse struct {
 	Explanation     string  `json:"explanation"`
 }
 
+type aiEdgeFactorResponse struct {
+	EdgeFactors map[string]float64 `json:"edge_factors"`
+}
+
 func NewAIGatewayFromEnv() *AIGateway {
 	baseURL := strings.TrimSpace(os.Getenv("AI_SERVICE_URL"))
 	if baseURL == "" {
@@ -107,6 +113,64 @@ func NewAIGatewayFromEnv() *AIGateway {
 			Timeout: timeout,
 		},
 	}
+}
+
+func (a *AIGateway) GetEdgeFactors(ctx context.Context, edges []models.Edge, routeContext rctx.Context) (EdgeAIFactors, error) {
+	fallback := neutralEdgeFactors(edges)
+	if a == nil {
+		return fallback, errors.New("ai gateway is not configured")
+	}
+	if a.client == nil {
+		a.client = &http.Client{Timeout: defaultAIServiceTimeout}
+	}
+	if strings.TrimSpace(a.baseURL) == "" {
+		return fallback, errors.New("ai service url is empty")
+	}
+
+	payload := aiRouteRequest{
+		Location: "",
+		Edges:    graphEdges(edges),
+		Context: aiContext{
+			LocationName: routeContext.LocationName,
+			EdgeFactors:  routeEdgeFactors(routeContext),
+		},
+		Route: aiRoute{},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fallback, err
+	}
+
+	endpoint := strings.TrimRight(a.baseURL, "/") + "/edge-factors"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return fallback, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fallback, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fallback, fmt.Errorf("ai service returned status %s", resp.Status)
+	}
+
+	var decoded aiEdgeFactorResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return fallback, err
+	}
+
+	for edgeID := range fallback {
+		if value, ok := decoded.EdgeFactors[edgeID]; ok {
+			fallback[edgeID] = clampAIFactor(value)
+		}
+	}
+	return fallback, nil
 }
 
 func (a *AIGateway) GetRouteInsights(ctx context.Context, route RouteResponse, routeContext rctx.Context) (*RouteInsights, error) {
@@ -261,6 +325,22 @@ func routeEdges(route RouteResponse) []aiEdge {
 	return edges
 }
 
+func graphEdges(edges []models.Edge) []aiEdge {
+	out := make([]aiEdge, 0, len(edges))
+	for _, edge := range edges {
+		out = append(out, aiEdge{
+			ID:       edge.ID,
+			From:     edge.From,
+			To:       edge.To,
+			ModeID:   edge.ModeID,
+			Distance: edge.Distance,
+			Time:     edge.Time,
+			Cost:     edge.Cost,
+		})
+	}
+	return out
+}
+
 func routeSteps(route RouteResponse) []aiStep {
 	steps := make([]aiStep, 0, len(route.Steps))
 	for _, step := range route.Steps {
@@ -329,6 +409,30 @@ func stepWeight(step models.RouteStep) float64 {
 
 func round1(value float64) float64 {
 	return mathRound(value*10) / 10
+}
+
+func neutralEdgeFactors(edges []models.Edge) EdgeAIFactors {
+	out := make(EdgeAIFactors, len(edges))
+	for _, edge := range edges {
+		if edge.ID == "" {
+			continue
+		}
+		out[edge.ID] = 1.0
+	}
+	return out
+}
+
+func clampAIFactor(value float64) float64 {
+	switch {
+	case value <= 0:
+		return 1.0
+	case value < 0.8:
+		return 0.8
+	case value > 1.5:
+		return 1.5
+	default:
+		return value
+	}
 }
 
 func mathRound(value float64) float64 {

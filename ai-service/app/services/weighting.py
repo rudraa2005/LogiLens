@@ -57,6 +57,7 @@ class WeightAdjuster:
         base_weights: dict[str, float],
         ml_predictions: MLPredictions | None,
         insight_hints: dict[str, float] | None,
+        feedback_bias: float = 0.0,
     ) -> WeightAdjustment:
         weights = dict(base_weights)
         ml_predictions = ml_predictions or MLPredictions()
@@ -81,8 +82,9 @@ class WeightAdjuster:
             weather_multiplier *= max(0.75, 1.0 - reliability * 0.10)
 
         weights["traffic"] = weights.get("traffic", 0.0) * traffic_multiplier
-        weights["news"] = weights.get("news", 0.0) * news_multiplier
+        weights["news"] = weights.get("news", 0.0) * news_multiplier * max(0.8, 1.0+feedback_bias)
         weights["weather"] = weights.get("weather", 0.0) * weather_multiplier
+        weights["traffic"] = weights.get("traffic", 0.0) * max(0.8, 1.0+feedback_bias*0.5)
 
         profile = normalize_weights(weights)
         summary = (
@@ -90,4 +92,3 @@ class WeightAdjuster:
             f"news {profile.news:.2f}, weather {profile.weather:.2f}."
         )
         return WeightAdjustment(profile=profile, summary=summary)
-

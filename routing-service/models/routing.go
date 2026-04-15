@@ -39,6 +39,9 @@ type Route struct {
 	ID                string `json:"id"`
 	SourceNodeID      string `json:"source_node_id"`
 	DestinationNodeID string `json:"destination_node_id"`
+	ParentRouteID     string `json:"parent_route_id"`
+	Version           int    `json:"version"`
+	IsActive          bool   `json:"is_active"`
 
 	TotalDistance float64 `json:"total_distance"`
 	TotalTime     float64 `json:"total_time"`

@@ -8,6 +8,10 @@ type Graph struct {
 	Nodes     map[string]models.Node
 	Adjacency map[string][]models.Edge
 	NameToID  map[string]string
+	Edges     map[string]models.Edge
+
+	maxSpeedKPH float64
+	spatial     *SpatialIndex
 }
 
 func BuildGraph(nodes []models.Node, edges []models.Edge) *Graph {
@@ -16,6 +20,7 @@ func BuildGraph(nodes []models.Node, edges []models.Edge) *Graph {
 		Nodes:     make(map[string]models.Node),
 		Adjacency: make(map[string][]models.Edge),
 		NameToID:  make(map[string]string),
+		Edges:     make(map[string]models.Edge),
 	}
 
 	// 1. Load nodes
@@ -27,12 +32,32 @@ func BuildGraph(nodes []models.Node, edges []models.Edge) *Graph {
 	// 2. Load edges into adjacency list
 	for _, edge := range edges {
 		graph.Adjacency[edge.From] = append(graph.Adjacency[edge.From], edge)
+		if edge.ID != "" {
+			graph.Edges[edge.ID] = edge
+		}
+		updateGraphMetrics(graph, edge)
 
 		ensureEdgeNode(graph, edge.From, edge.Geometry, true)
 		ensureEdgeNode(graph, edge.To, edge.Geometry, false)
 	}
 
+	graph.spatial = BuildSpatialIndex(graph.Nodes, edges)
+
 	return graph
+}
+
+func updateGraphMetrics(g *Graph, edge models.Edge) {
+	if g == nil {
+		return
+	}
+	if edge.Distance <= 0 || edge.Time <= 0 {
+		return
+	}
+
+	speedKPH := edge.Distance / (edge.Time / 60.0)
+	if speedKPH > g.maxSpeedKPH {
+		g.maxSpeedKPH = speedKPH
+	}
 }
 
 func ensureEdgeNode(g *Graph, nodeID string, geometry []models.LatLng, useFirstPoint bool) {

@@ -80,6 +80,35 @@ class AnalysisResponse(BaseModel):
     explanation: str
 
 
+class RouteOutcomeFeedback(BaseModel):
+    route_id: str | None = None
+    predicted_time: float = Field(default=0.0, ge=0.0)
+    actual_time: float = Field(default=0.0, ge=0.0)
+    predicted_risk: float = Field(default=0.0, ge=0.0, le=100.0)
+    actual_delay: float = Field(default=0.0, ge=0.0)
+
+
+class FeedbackRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    location: str | None = None
+    context: Context = Field(default_factory=Context)
+    route: Route
+    feedback: RouteOutcomeFeedback
+
+
+class FeedbackResponse(BaseModel):
+    status: str
+    samples: int
+    time_bias: float
+    risk_bias: float
+    confidence_bias: float
+
+
+class EdgeFactorResponse(BaseModel):
+    edge_factors: dict[str, float] = Field(default_factory=dict)
+
+
 class InsightReport(BaseModel):
     risk_score: float = 0.0
     confidence_score: float = 50.0
@@ -96,4 +125,3 @@ class WeightProfile(BaseModel):
     traffic: float
     news: float
     weather: float
-

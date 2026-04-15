@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
+	"strings"
 
 	proto "github.com/rudraa2005/LogiLens/proto"
 	"github.com/rudraa2005/LogiLens/routing-service/db"
@@ -12,6 +14,7 @@ import (
 	"github.com/rudraa2005/LogiLens/routing-service/repository"
 	"github.com/rudraa2005/LogiLens/routing-service/server"
 	"github.com/rudraa2005/LogiLens/routing-service/services"
+	"github.com/rudraa2005/LogiLens/routing-service/worker"
 	"google.golang.org/grpc"
 )
 
@@ -41,6 +44,12 @@ func main() {
 	}
 
 	routeService := services.NewRouteService(routeRepo, g, geoSvc)
+	rootCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("REOPTIMIZER_ENABLED")), "true") {
+		worker.NewReoptimizationWorker(routeRepo, routeService, worker.NewLogNotifier()).Start(rootCtx)
+	}
 
 	grpcServer := grpc.NewServer()
 	proto.RegisterRouteServiceServer(grpcServer, server.NewRouteServer(routeService))

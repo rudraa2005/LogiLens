@@ -5,7 +5,7 @@ import unittest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.schemas import AnalysisRequest, AnalysisResponse, InsightReport, MLPredictions
+from app.schemas import AnalysisResponse, EdgeFactorResponse, FeedbackResponse, InsightReport
 from app.services.service import AIService
 
 
@@ -130,6 +130,35 @@ class TestAIServiceApp(unittest.TestCase):
         body = AnalysisResponse.model_validate(response.json())
         self.assertGreater(body.confidence_score, 0)
         self.assertIn("ml adjusted weights", body.explanation.lower())
+
+    def test_feedback_endpoint(self) -> None:
+        payload = {
+            "location": "Bengaluru, India",
+            "route": sample_request()["route"],
+            "context": sample_request()["context"],
+            "feedback": {
+                "route_id": "route-1",
+                "predicted_time": 18,
+                "actual_time": 22,
+                "predicted_risk": 42,
+                "actual_delay": 18,
+            },
+        }
+
+        response = self.client.post("/feedback", json=payload)
+        self.assertEqual(response.status_code, 200)
+        body = FeedbackResponse.model_validate(response.json())
+        self.assertEqual(body.status, "accepted")
+        self.assertGreaterEqual(body.samples, 1)
+
+    def test_edge_factors_endpoint(self) -> None:
+        response = self.client.post("/edge-factors", json=sample_request())
+        self.assertEqual(response.status_code, 200)
+        body = EdgeFactorResponse.model_validate(response.json())
+        self.assertIn("e-1", body.edge_factors)
+        self.assertIn("e-2", body.edge_factors)
+        self.assertGreaterEqual(body.edge_factors["e-1"], 0.8)
+        self.assertLessEqual(body.edge_factors["e-1"], 1.5)
 
 
 if __name__ == "__main__":  # pragma: no cover

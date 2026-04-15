@@ -123,13 +123,14 @@ func (TransportMode) EnumDescriptor() ([]byte, []int) {
 }
 
 type RouteRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	Destination   string                 `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
-	OptimizeBy    OptimizationType       `protobuf:"varint,3,opt,name=optimize_by,json=optimizeBy,proto3,enum=route.OptimizationType" json:"optimize_by,omitempty"`
-	AllowedModes  []TransportMode        `protobuf:"varint,4,rep,packed,name=allowed_modes,json=allowedModes,proto3,enum=route.TransportMode" json:"allowed_modes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Source            string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	Destination       string                 `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
+	OptimizeBy        OptimizationType       `protobuf:"varint,3,opt,name=optimize_by,json=optimizeBy,proto3,enum=route.OptimizationType" json:"optimize_by,omitempty"`
+	AllowedModes      []TransportMode        `protobuf:"varint,4,rep,packed,name=allowed_modes,json=allowedModes,proto3,enum=route.TransportMode" json:"allowed_modes,omitempty"`
+	DepartureTimeUnix int64                  `protobuf:"varint,5,opt,name=departure_time_unix,json=departureTimeUnix,proto3" json:"departure_time_unix,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RouteRequest) Reset() {
@@ -188,6 +189,13 @@ func (x *RouteRequest) GetAllowedModes() []TransportMode {
 		return x.AllowedModes
 	}
 	return nil
+}
+
+func (x *RouteRequest) GetDepartureTimeUnix() int64 {
+	if x != nil {
+		return x.DepartureTimeUnix
+	}
+	return 0
 }
 
 type RouteResponse struct {
@@ -546,13 +554,14 @@ var File_proto_route_proto protoreflect.FileDescriptor
 
 const file_proto_route_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/route.proto\x12\x05route\"\xbd\x01\n" +
+	"\x11proto/route.proto\x12\x05route\"\xed\x01\n" +
 	"\fRouteRequest\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12 \n" +
 	"\vdestination\x18\x02 \x01(\tR\vdestination\x128\n" +
 	"\voptimize_by\x18\x03 \x01(\x0e2\x17.route.OptimizationTypeR\n" +
 	"optimizeBy\x129\n" +
-	"\rallowed_modes\x18\x04 \x03(\x0e2\x14.route.TransportModeR\fallowedModes\"\xaa\x03\n" +
+	"\rallowed_modes\x18\x04 \x03(\x0e2\x14.route.TransportModeR\fallowedModes\x12.\n" +
+	"\x13departure_time_unix\x18\x05 \x01(\x03R\x11departureTimeUnix\"\xaa\x03\n" +
 	"\rRouteResponse\x12\x19\n" +
 	"\broute_id\x18\x01 \x01(\tR\arouteId\x12&\n" +
 	"\x05steps\x18\x02 \x03(\v2\x10.route.RouteStepR\x05steps\x12%\n" +

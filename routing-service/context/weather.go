@@ -11,7 +11,7 @@ import (
 )
 
 type WeatherFetcher interface {
-	Fetch(lat, lng float64) (float64, error)
+	Fetch(lat, lng float64, at time.Time) (float64, error)
 }
 
 type OpenMeteoWeatherFetcher struct {
@@ -28,7 +28,7 @@ func NewOpenMeteoWeatherFetcher() *OpenMeteoWeatherFetcher {
 	}
 }
 
-func (f *OpenMeteoWeatherFetcher) Fetch(lat, lng float64) (float64, error) {
+func (f *OpenMeteoWeatherFetcher) Fetch(lat, lng float64, at time.Time) (float64, error) {
 	baseURL := f.BaseURL
 	if strings.TrimSpace(baseURL) == "" {
 		baseURL = "https://api.open-meteo.com"
@@ -48,8 +48,9 @@ func (f *OpenMeteoWeatherFetcher) Fetch(lat, lng float64) (float64, error) {
 	query := endpoint.Query()
 	query.Set("latitude", strconv.FormatFloat(lat, 'f', -1, 64))
 	query.Set("longitude", strconv.FormatFloat(lng, 'f', -1, 64))
-	query.Set("current", "weather_code,precipitation,wind_speed_10m")
-	query.Set("timezone", "auto")
+	query.Set("hourly", "weather_code,precipitation,wind_speed_10m")
+	query.Set("forecast_days", "2")
+	query.Set("timezone", "UTC")
 	endpoint.RawQuery = query.Encode()
 
 	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
@@ -68,27 +69,70 @@ func (f *OpenMeteoWeatherFetcher) Fetch(lat, lng float64) (float64, error) {
 	}
 
 	var body struct {
+		Hourly struct {
+			Time          []string  `json:"time"`
+			WeatherCode   []int     `json:"weather_code"`
+			Precipitation []float64 `json:"precipitation"`
+			WindSpeed10M  []float64 `json:"wind_speed_10m"`
+		} `json:"hourly"`
 		Current struct {
 			WeatherCode   int     `json:"weather_code"`
 			Precipitation float64 `json:"precipitation"`
 			WindSpeed10M  float64 `json:"wind_speed_10m"`
 		} `json:"current"`
-		CurrentWeather struct {
-			WeatherCode   int     `json:"weathercode"`
-			Precipitation float64 `json:"precipitation"`
-			WindSpeed10M  float64 `json:"windspeed"`
-		} `json:"current_weather"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		return 1.0, err
 	}
 
-	code := body.Current.WeatherCode
-	if code == 0 && body.CurrentWeather.WeatherCode != 0 {
-		code = body.CurrentWeather.WeatherCode
+	if factor, ok := forecastFactorAt(body.Hourly.Time, body.Hourly.WeatherCode, body.Hourly.Precipitation, body.Hourly.WindSpeed10M, at); ok {
+		return factor, nil
 	}
 
-	return weatherFactorForCode(code, body.Current.Precipitation, body.Current.WindSpeed10M), nil
+	return weatherFactorForCode(body.Current.WeatherCode, body.Current.Precipitation, body.Current.WindSpeed10M), nil
+}
+
+func forecastFactorAt(times []string, codes []int, precipitation []float64, wind []float64, at time.Time) (float64, bool) {
+	if len(times) == 0 {
+		return 1.0, false
+	}
+	if at.IsZero() {
+		at = time.Now().UTC()
+	}
+
+	target := at.UTC().Truncate(time.Hour)
+	bestIndex := -1
+	bestDelta := 48 * time.Hour
+
+	for i, raw := range times {
+		parsed, err := time.Parse("2006-01-02T15:04", raw)
+		if err != nil {
+			continue
+		}
+		delta := parsed.Sub(target)
+		if delta < 0 {
+			delta = -delta
+		}
+		if delta < bestDelta {
+			bestDelta = delta
+			bestIndex = i
+		}
+	}
+
+	if bestIndex < 0 || bestIndex >= len(codes) {
+		return 1.0, false
+	}
+
+	precip := 0.0
+	if bestIndex < len(precipitation) {
+		precip = precipitation[bestIndex]
+	}
+	windSpeed := 0.0
+	if bestIndex < len(wind) {
+		windSpeed = wind[bestIndex]
+	}
+
+	return weatherFactorForCode(codes[bestIndex], precip, windSpeed), true
 }
 
 func weatherFactorForCode(code int, precipitation, windSpeed float64) float64 {

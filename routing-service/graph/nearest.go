@@ -2,7 +2,6 @@ package graph
 
 import (
 	"math"
-	"sort"
 
 	"github.com/rudraa2005/LogiLens/routing-service/models"
 )
@@ -15,6 +14,39 @@ const nearbyEdgeThresholdKm = 0.35
 func (g *Graph) FindNearestNode(lat, lng float64) string {
 	if g == nil || len(g.Nodes) == 0 {
 		return ""
+	}
+
+	if g.spatial != nil {
+		nearestID := ""
+		minDistance := math.Inf(1)
+
+		for ring := 0; ring <= maxNearestNodeSearchRings; ring++ {
+			candidates := g.spatial.nodeCandidates(lat, lng, ring)
+			for _, nodeID := range candidates {
+				node, ok := g.Nodes[nodeID]
+				if !ok {
+					continue
+				}
+				distance := haversineDistanceKm(lat, lng, node.Latitude, node.Longitude)
+				if distance < minDistance {
+					minDistance = distance
+					nearestID = nodeID
+				}
+			}
+
+			if nearestID != "" {
+				// Once the next ring cannot contain a closer node than the
+				// current best, we can stop expanding.
+				minPossible := math.Max(0, float64(ring)*g.spatial.cellSizeKm-math.Sqrt2*g.spatial.cellSizeKm)
+				if minPossible >= minDistance {
+					return nearestID
+				}
+			}
+		}
+
+		if nearestID != "" {
+			return nearestID
+		}
 	}
 
 	nearestID := ""
@@ -38,56 +70,81 @@ func (g *Graph) FindNearestEdge(lat, lng float64) string {
 		return ""
 	}
 
-	nearestID := ""
-	minDistance := math.Inf(1)
-
-	for _, edges := range g.Adjacency {
-		for _, edge := range edges {
-			for _, point := range edge.Geometry {
-				distance := haversineDistanceKm(lat, lng, point.Latitude, point.Longitude)
-				if distance < minDistance {
-					minDistance = distance
-					nearestID = edge.ID
-				}
-			}
+	for _, radiusKm := range []float64{nearbyEdgeThresholdKm, 1, 3, 10} {
+		matches := g.FindNearbyEdgeDistances(lat, lng, radiusKm)
+		if len(matches) > 0 {
+			return matches[0].EdgeID
 		}
 	}
 
+	nearestID := ""
+	minDistance := math.Inf(1)
+	for _, edge := range g.Edges {
+		distance := edgeGeometryDistanceKm(g, edge, lat, lng)
+		if distance < minDistance {
+			minDistance = distance
+			nearestID = edge.ID
+		}
+	}
 	return nearestID
 }
 
 // FindNearbyEdges returns all edge IDs whose geometry lies within a fixed
 // distance threshold of the provided point.
-func (g *Graph) FindNearbyEdges(lat, lng float64) []string {
+func (g *Graph) FindNearbyEdges(lat, lng float64, radiusKm ...float64) []string {
+	matches := g.FindNearbyEdgeDistances(lat, lng, radiusKm...)
+	edgeIDs := make([]string, 0, len(matches))
+	for _, match := range matches {
+		edgeIDs = append(edgeIDs, match.EdgeID)
+	}
+	return edgeIDs
+}
+
+func (g *Graph) FindNearbyEdgeDistances(lat, lng float64, radiusKm ...float64) []EdgeDistance {
 	if g == nil || len(g.Adjacency) == 0 {
 		return nil
 	}
 
-	edgeIDs := make([]string, 0)
-	seen := make(map[string]struct{})
+	thresholdKm := nearbyEdgeThresholdKm
+	if len(radiusKm) > 0 && radiusKm[0] > 0 {
+		thresholdKm = radiusKm[0]
+	}
 
-	for _, edges := range g.Adjacency {
-		for _, edge := range edges {
-			if edge.ID == "" {
-				continue
-			}
-
-			distance := edgeGeometryDistanceKm(g, edge, lat, lng)
-			if distance > nearbyEdgeThresholdKm {
-				continue
-			}
-
-			if _, ok := seen[edge.ID]; ok {
-				continue
-			}
-
-			seen[edge.ID] = struct{}{}
-			edgeIDs = append(edgeIDs, edge.ID)
+	candidateIDs := make([]string, 0)
+	if g.spatial != nil {
+		candidateIDs = g.spatial.edgeCandidates(lat, lng, thresholdKm)
+	}
+	if len(candidateIDs) == 0 {
+		for edgeID := range g.Edges {
+			candidateIDs = append(candidateIDs, edgeID)
 		}
 	}
 
-	sort.Strings(edgeIDs)
-	return edgeIDs
+	matches := make([]EdgeDistance, 0)
+	seen := make(map[string]struct{})
+	for _, edgeID := range candidateIDs {
+		if _, ok := seen[edgeID]; ok {
+			continue
+		}
+		seen[edgeID] = struct{}{}
+
+		edge, ok := g.Edges[edgeID]
+		if !ok {
+			continue
+		}
+
+		distance := edgeGeometryDistanceKm(g, edge, lat, lng)
+		if distance > thresholdKm {
+			continue
+		}
+		matches = append(matches, EdgeDistance{
+			EdgeID:     edgeID,
+			DistanceKm: distance,
+		})
+	}
+
+	sortEdgeDistances(matches)
+	return matches
 }
 
 func haversineDistanceKm(lat1, lon1, lat2, lon2 float64) float64 {

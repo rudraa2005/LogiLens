@@ -14,6 +14,7 @@ message RouteRequest {
 
     OptimizationType optimize_by = 3;
     repeated TransportMode allowed_modes = 4;
+    int64 departure_time_unix = 5;
 }
 
 message RouteResponse {

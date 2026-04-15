@@ -3,6 +3,7 @@ package graph
 import (
 	"container/heap"
 	"math"
+	"time"
 
 	rctx "github.com/rudraa2005/LogiLens/routing-service/context"
 	"github.com/rudraa2005/LogiLens/routing-service/models"
@@ -43,21 +44,30 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
-func (g *Graph) heuristic(a, b string) float64 {
+func (g *Graph) heuristic(a, b, optimizeBy string) float64 {
 	n1 := g.Nodes[a]
 	n2 := g.Nodes[b]
 
-	dx := n1.Latitude - n2.Latitude
-	dy := n1.Longitude - n2.Longitude
+	distanceKm := haversineDistanceKm(n1.Latitude, n1.Longitude, n2.Latitude, n2.Longitude)
 
-	return math.Sqrt(dx*dx + dy*dy)
+	switch optimizeBy {
+	case "time":
+		if g.maxSpeedKPH <= 0 {
+			return 0
+		}
+		return distanceKm / g.maxSpeedKPH * 60.0
+	case "distance":
+		return distanceKm
+	default:
+		return 0
+	}
 }
 
-func (g *Graph) Astar(start string, goal string, ctx rctx.Context, optimizeBy string) ([]string, map[string]models.Edge) {
-	return g.AstarWithConstraints(start, goal, ctx, optimizeBy, SearchConstraints{})
+func (g *Graph) Astar(start string, goal string, ctx rctx.Context, optimizeBy string, departure time.Time) ([]string, map[string]models.Edge) {
+	return g.AstarWithConstraints(start, goal, ctx, optimizeBy, departure, SearchConstraints{})
 }
 
-func (g *Graph) AstarWithConstraints(start string, goal string, ctx rctx.Context, optimizeBy string, constraints SearchConstraints) ([]string, map[string]models.Edge) {
+func (g *Graph) AstarWithConstraints(start string, goal string, ctx rctx.Context, optimizeBy string, departure time.Time, constraints SearchConstraints) ([]string, map[string]models.Edge) {
 	openSet := &PriorityQueue{}
 	heap.Init(openSet)
 
@@ -66,14 +76,17 @@ func (g *Graph) AstarWithConstraints(start string, goal string, ctx rctx.Context
 		Priority: 0,
 	})
 
-	gScore := make(map[string]float64)
+	gScoreCost := make(map[string]float64)
+	gScoreTime := make(map[string]float64)
 	cameFrom := make(map[string]string)
 	cameFromEdge := make(map[string]models.Edge)
 
 	for node := range g.Nodes {
-		gScore[node] = math.Inf(1)
+		gScoreCost[node] = math.Inf(1)
+		gScoreTime[node] = math.Inf(1)
 	}
-	gScore[start] = 0
+	gScoreCost[start] = 0
+	gScoreTime[start] = 0
 	for openSet.Len() > 0 {
 		current := heap.Pop(openSet).(*Item).Node
 
@@ -86,15 +99,23 @@ func (g *Graph) AstarWithConstraints(start string, goal string, ctx rctx.Context
 			if constraints.blockedNode(neighbour) || constraints.blockedEdge(edge.ID) {
 				continue
 			}
-			weight := EdgeWeight(edge, ctx, optimizeBy)
-			tentative := gScore[current] + weight
 
-			if tentative < gScore[neighbour] {
+			eta := departure
+			if !departure.IsZero() && !math.IsInf(gScoreTime[current], 1) {
+				eta = departure.Add(time.Duration(gScoreTime[current] * float64(time.Minute)))
+			}
+			adjustedTime := EdgeWeight(edge, ctx, "time", eta)
+			weight := EdgeWeight(edge, ctx, optimizeBy, eta)
+			tentativeCost := gScoreCost[current] + weight
+			tentativeTime := gScoreTime[current] + adjustedTime
+
+			if tentativeCost < gScoreCost[neighbour] {
 				cameFrom[neighbour] = current
 				cameFromEdge[neighbour] = edge
 
-				gScore[neighbour] = tentative
-				fScore := tentative + g.heuristic(neighbour, goal)
+				gScoreCost[neighbour] = tentativeCost
+				gScoreTime[neighbour] = tentativeTime
+				fScore := tentativeCost + g.heuristic(neighbour, goal, optimizeBy)
 
 				heap.Push(openSet, &Item{
 					Node:     neighbour,

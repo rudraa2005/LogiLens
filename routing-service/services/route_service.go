@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	LogiLens "github.com/rudraa2005/LogiLens/proto"
@@ -43,7 +44,17 @@ func NewRouteService(repo *repository.RouteRepository, graph *graph.Graph, geoco
 			}
 			return nodeID
 		})
-		contextSvc.NearbyEdges = graph.FindNearbyEdges
+		contextSvc.NearbyEdges = func(lat, lng, radiusKm float64) []rctx.EdgeDistance {
+			matches := graph.FindNearbyEdgeDistances(lat, lng, radiusKm)
+			out := make([]rctx.EdgeDistance, 0, len(matches))
+			for _, match := range matches {
+				out = append(out, rctx.EdgeDistance{
+					EdgeID:     match.EdgeID,
+					DistanceKm: match.DistanceKm,
+				})
+			}
+			return out
+		}
 		builder = contextSvc
 	}
 
@@ -62,7 +73,7 @@ type routeRepository interface {
 }
 
 type contextBuilder interface {
-	BuildForRoute(srcLat, srcLng, dstLat, dstLng float64) rctx.Context
+	BuildForRoute(srcLat, srcLng, dstLat, dstLng float64, departureTime time.Time) rctx.Context
 }
 
 type Geocoder interface {
@@ -70,6 +81,7 @@ type Geocoder interface {
 }
 
 type routeInsightGateway interface {
+	GetEdgeFactors(ctx context.Context, edges []models.Edge, routeContext rctx.Context) (EdgeAIFactors, error)
 	GetRouteInsights(ctx context.Context, route RouteResponse, routeContext rctx.Context) (*RouteInsights, error)
 }
 
@@ -143,8 +155,9 @@ func (rs *RouteService) resolveNearestNode(place string) (string, float64, float
 	return nodeID, lat, lng, nil
 }
 
-func (rs *RouteService) BuildRoute(path []string, edges map[string]models.Edge) []models.RouteStep {
+func (rs *RouteService) BuildRoute(path []string, edges map[string]models.Edge, routeContext rctx.Context, departure time.Time) []models.RouteStep {
 	steps := []models.RouteStep{}
+	currentTime := departure
 
 	for i := 0; i < len(path)-1; i++ {
 		from := path[i]
@@ -158,12 +171,13 @@ func (rs *RouteService) BuildRoute(path []string, edges map[string]models.Edge) 
 			EdgeID:     edge.ID,
 			ModeID:     edge.ModeID,
 			Distance:   edge.Distance,
-			Time:       edge.Time,
-			Cost:       edge.Cost,
+			Time:       graph.EdgeWeight(edge, routeContext, "time", currentTime),
+			Cost:       graph.EdgeWeight(edge, routeContext, "cost", currentTime),
 			Geometry:   edge.Geometry,
 		}
 
 		steps = append(steps, step)
+		currentTime = currentTime.Add(time.Duration(step.Time * float64(time.Minute)))
 	}
 	return steps
 }
@@ -181,8 +195,8 @@ func (rs *RouteService) CreateRoute(ctx context.Context, route models.Route, ste
 	return routeID, nil
 }
 
-func (rs *RouteService) ComputeRoute(ctx context.Context, req RouteRequest) (RouteResponse, error) {
-	routes, routeContext, err := rs.computeRoutes(ctx, req, defaultRouteAlternatives)
+func (rs *RouteService) ComputeRoute(ctx context.Context, req RouteRequest, departure time.Time) (RouteResponse, error) {
+	routes, routeContext, err := rs.computeRoutes(ctx, req, departure, defaultRouteAlternatives)
 	if err != nil {
 		return RouteResponse{}, err
 	}
@@ -218,12 +232,60 @@ func (rs *RouteService) ComputeRoute(ctx context.Context, req RouteRequest) (Rou
 	return best, nil
 }
 
-func (rs *RouteService) ComputeRoutes(ctx context.Context, req RouteRequest, limit int) ([]RouteResponse, error) {
-	routes, _, err := rs.computeRoutes(ctx, req, limit)
+func (rs *RouteService) ComputeRoutes(ctx context.Context, req RouteRequest, departure time.Time, limit int) ([]RouteResponse, error) {
+	routes, _, err := rs.computeRoutes(ctx, req, departure, limit)
 	return routes, err
 }
 
-func (rs *RouteService) computeRoutes(ctx context.Context, req RouteRequest, limit int) ([]RouteResponse, rctx.Context, error) {
+func (rs *RouteService) RecomputeStoredRoute(ctx context.Context, stored models.Route, optimizeBy string) (RouteResponse, error) {
+	if rs.graph == nil {
+		return RouteResponse{}, errors.New("routing graph is not configured")
+	}
+
+	sourceNode, ok := rs.graph.Nodes[stored.SourceNodeID]
+	if !ok {
+		return RouteResponse{}, fmt.Errorf("source node %q not found", stored.SourceNodeID)
+	}
+	destinationNode, ok := rs.graph.Nodes[stored.DestinationNodeID]
+	if !ok {
+		return RouteResponse{}, fmt.Errorf("destination node %q not found", stored.DestinationNodeID)
+	}
+
+	departureTime := stored.CreatedAt
+	if departureTime.IsZero() {
+		departureTime = time.Now().UTC()
+	}
+
+	routes, routeContext, err := rs.computeRoutesBetweenNodes(
+		ctx,
+		stored.SourceNodeID,
+		stored.DestinationNodeID,
+		sourceNode.Latitude,
+		sourceNode.Longitude,
+		destinationNode.Latitude,
+		destinationNode.Longitude,
+		optimizeBy,
+		departureTime,
+		defaultRouteAlternatives,
+	)
+	if err != nil {
+		return RouteResponse{}, err
+	}
+	if len(routes) == 0 {
+		return RouteResponse{}, errors.New("no route found")
+	}
+
+	decision := comparison.CompareRoutes(routeResponsesToComparison(routes))
+	best := routeResponseFromComparison(decision.BestRoute)
+	best.Alternatives = append([]comparison.Route(nil), decision.Alternatives...)
+	best.TimeSaved = decision.TimeSaved
+	best.CostSaved = decision.CostSaved
+	best.Explanation = explanation.ExplainRoute(decision.BestRoute, decision.Alternatives, routeContext)
+	best.RouteID = stored.ID
+	return best, nil
+}
+
+func (rs *RouteService) computeRoutes(ctx context.Context, req RouteRequest, departure time.Time, limit int) ([]RouteResponse, rctx.Context, error) {
 	sourceID, sourceLat, sourceLng, err := rs.resolveNearestNode(req.Source)
 	if err != nil {
 		return nil, rctx.BuildContext(), err
@@ -234,28 +296,84 @@ func (rs *RouteService) computeRoutes(ctx context.Context, req RouteRequest, lim
 		return nil, rctx.BuildContext(), err
 	}
 
-	ctxData := rctx.BuildContext()
-	if rs.contextBuilder != nil {
-		ctxData = rs.contextBuilder.BuildForRoute(sourceLat, sourceLng, destLat, destLng)
+	return rs.computeRoutesBetweenNodes(
+		ctx,
+		sourceID,
+		destinationID,
+		sourceLat,
+		sourceLng,
+		destLat,
+		destLng,
+		req.OptimizeBy,
+		departure,
+		limit,
+	)
+}
+
+func (rs *RouteService) computeRoutesBetweenNodes(
+	ctx context.Context,
+	sourceID, destinationID string,
+	sourceLat, sourceLng, destLat, destLng float64,
+	optimizeBy string,
+	departureTime time.Time,
+	limit int,
+) ([]RouteResponse, rctx.Context, error) {
+	if departureTime.IsZero() {
+		departureTime = time.Now().UTC()
 	}
 
-	optimizeBy := req.OptimizeBy
+	ctxData := rctx.BuildContext()
+	if rs.contextBuilder != nil {
+		ctxData = rs.contextBuilder.BuildForRoute(sourceLat, sourceLng, destLat, destLng, departureTime)
+	}
+	if rs.aiGateway != nil && rs.graph != nil {
+		aiFactors, _ := rs.aiGateway.GetEdgeFactors(ctx, graphEdgesSlice(rs.graph.Edges), ctxData)
+		applyAIFactors(&ctxData, aiFactors)
+	}
+
 	if optimizeBy == "" {
 		optimizeBy = "time"
 	}
 
-	paths := rs.graph.KShortestPaths(sourceID, destinationID, ctxData, optimizeBy, limit)
+	paths := rs.graph.KShortestPaths(sourceID, destinationID, ctxData, optimizeBy, departureTime, limit)
 	if len(paths) == 0 {
 		return nil, ctxData, errors.New("no route found")
 	}
 
-	return rs.routeResponsesFromPaths(paths, sourceID, destinationID), ctxData, nil
+	return rs.routeResponsesFromPaths(paths, sourceID, destinationID, ctxData, departureTime), ctxData, nil
 }
 
-func (rs *RouteService) routeResponsesFromPaths(paths []graph.PathResult, sourceID, destinationID string) []RouteResponse {
+func graphEdgesSlice(edgeMap map[string]models.Edge) []models.Edge {
+	edges := make([]models.Edge, 0, len(edgeMap))
+	for _, edge := range edgeMap {
+		edges = append(edges, edge)
+	}
+	return edges
+}
+
+func applyAIFactors(ctx *rctx.Context, factors EdgeAIFactors) {
+	if ctx == nil {
+		return
+	}
+	for edgeID, aiFactor := range factors {
+		if aiFactor == 1.0 {
+			if _, exists := ctx.EdgeFactors[edgeID]; !exists {
+				continue
+			}
+		}
+		item := ctx.EdgeFactors[edgeID]
+		item.AIFactor = aiFactor
+		ctx.EdgeFactors[edgeID] = item
+		if !ctx.DepartureTime.IsZero() {
+			ctx.AddTimedEdgeFactor(edgeID, ctx.DepartureTime, rctx.EdgeContext{AIFactor: aiFactor})
+		}
+	}
+}
+
+func (rs *RouteService) routeResponsesFromPaths(paths []graph.PathResult, sourceID, destinationID string, routeContext rctx.Context, departure time.Time) []RouteResponse {
 	routes := make([]RouteResponse, 0, len(paths))
 	for _, path := range paths {
-		steps := rs.BuildRoute(path.Nodes, path.Edges)
+		steps := rs.BuildRoute(path.Nodes, path.Edges, routeContext, departure)
 
 		var totalDistance, totalTime, totalCost float64
 		for _, step := range steps {
@@ -283,6 +401,8 @@ func (rs *RouteService) persistRoute(ctx context.Context, routeResp RouteRespons
 
 		SourceNodeID:      routeResp.SourceNodeID,
 		DestinationNodeID: routeResp.DestinationNodeID,
+		Version:           1,
+		IsActive:          true,
 
 		TotalDistance: routeResp.TotalDistance,
 		TotalTime:     routeResp.TotalTime,

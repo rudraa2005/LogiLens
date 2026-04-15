@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/rudraa2005/LogiLens/routing-service/comparison"
 	rctx "github.com/rudraa2005/LogiLens/routing-service/context"
@@ -41,14 +42,22 @@ type fakeContextBuilder struct {
 	ctx rctx.Context
 }
 
-func (f *fakeContextBuilder) BuildForRoute(srcLat, srcLng, dstLat, dstLng float64) rctx.Context {
+func (f *fakeContextBuilder) BuildForRoute(srcLat, srcLng, dstLat, dstLng float64, departureTime time.Time) rctx.Context {
 	return f.ctx
 }
 
 type fakeAIGateway struct {
 	insights *RouteInsights
+	factors  EdgeAIFactors
 	err      error
 	calls    int
+}
+
+func (f *fakeAIGateway) GetEdgeFactors(ctx context.Context, edges []models.Edge, routeContext rctx.Context) (EdgeAIFactors, error) {
+	if f.factors == nil {
+		return EdgeAIFactors{}, nil
+	}
+	return f.factors, nil
 }
 
 func (f *fakeAIGateway) GetRouteInsights(ctx context.Context, route RouteResponse, routeContext rctx.Context) (*RouteInsights, error) {
@@ -107,7 +116,7 @@ func TestComputeRouteUsesGeocodeThenNearestNodeThenAstar(t *testing.T) {
 		Source:      "source place",
 		Destination: "destination place",
 		OptimizeBy:  "time",
-	})
+	}, time.Date(2026, 4, 15, 8, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("ComputeRoute returned error: %v", err)
 	}
@@ -189,7 +198,7 @@ func TestComputeRouteMergesAIInsightsWithoutBlocking(t *testing.T) {
 		Source:      "source place",
 		Destination: "destination place",
 		OptimizeBy:  "time",
-	})
+	}, time.Date(2026, 4, 15, 8, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("ComputeRoute returned error: %v", err)
 	}
@@ -307,7 +316,7 @@ func TestComputeRoutesReturnsMultipleAlternatives(t *testing.T) {
 		Source:      "source place",
 		Destination: "destination place",
 		OptimizeBy:  "time",
-	}, 5)
+	}, time.Date(2026, 4, 15, 8, 0, 0, 0, time.UTC), 5)
 	if err != nil {
 		t.Fatalf("ComputeRoutes returned error: %v", err)
 	}
@@ -316,6 +325,60 @@ func TestComputeRoutesReturnsMultipleAlternatives(t *testing.T) {
 	}
 	if routes[0].TotalTime != 2 || routes[1].TotalTime != 4 {
 		t.Fatalf("unexpected route totals: %#v", routes)
+	}
+}
+
+func TestComputeRouteUsesAIFactorsDuringPathSelection(t *testing.T) {
+	g := graph.BuildGraph(
+		[]models.Node{
+			{NodeID: "s", Latitude: 0, Longitude: 0},
+			{NodeID: "a", Latitude: 0, Longitude: 1},
+			{NodeID: "b", Latitude: 1, Longitude: 0},
+			{NodeID: "t", Latitude: 1, Longitude: 1},
+		},
+		[]models.Edge{
+			{ID: "s-a", From: "s", To: "a", Distance: 1, Time: 1, Cost: 1},
+			{ID: "a-t", From: "a", To: "t", Distance: 1, Time: 1, Cost: 1},
+			{ID: "s-b", From: "s", To: "b", Distance: 1, Time: 1, Cost: 1},
+			{ID: "b-t", From: "b", To: "t", Distance: 1, Time: 1, Cost: 1},
+		},
+	)
+
+	geo := &fakeGeocoder{
+		coords: map[string][2]float64{
+			"source place":      {0, 0},
+			"destination place": {1, 1},
+		},
+	}
+
+	svc := &RouteService{
+		graph:    g,
+		geocoder: geo,
+		repo:     &fakeRouteRepo{},
+		aiGateway: &fakeAIGateway{
+			factors: EdgeAIFactors{
+				"s-a": 1.4,
+				"a-t": 1.4,
+				"s-b": 0.8,
+				"b-t": 0.8,
+			},
+			insights: &RouteInsights{},
+		},
+	}
+
+	resp, err := svc.ComputeRoute(context.Background(), RouteRequest{
+		Source:      "source place",
+		Destination: "destination place",
+		OptimizeBy:  "time",
+	}, time.Date(2026, 4, 15, 8, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("ComputeRoute returned error: %v", err)
+	}
+	if len(resp.Steps) != 2 {
+		t.Fatalf("expected 2 steps, got %d", len(resp.Steps))
+	}
+	if resp.Steps[0].EdgeID != "s-b" || resp.Steps[1].EdgeID != "b-t" {
+		t.Fatalf("expected AI-influenced path through b, got %#v", resp.Steps)
 	}
 }
 

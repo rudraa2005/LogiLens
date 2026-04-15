@@ -3,6 +3,7 @@ package graph
 import (
 	"container/heap"
 	"strings"
+	"time"
 
 	rctx "github.com/rudraa2005/LogiLens/routing-service/context"
 	"github.com/rudraa2005/LogiLens/routing-service/models"
@@ -59,13 +60,13 @@ func (c SearchConstraints) blockedEdge(edgeID string) bool {
 	return ok
 }
 
-func (g *Graph) KShortestPaths(start, goal string, ctx rctx.Context, optimizeBy string, limit int) []PathResult {
+func (g *Graph) KShortestPaths(start, goal string, ctx rctx.Context, optimizeBy string, departure time.Time, limit int) []PathResult {
 	limit = normalizeRouteLimit(limit)
 	if limit <= 0 {
 		return nil
 	}
 
-	nodes, edges := g.Astar(start, goal, ctx, optimizeBy)
+	nodes, edges := g.Astar(start, goal, ctx, optimizeBy, departure)
 	if len(nodes) == 0 {
 		return nil
 	}
@@ -74,7 +75,7 @@ func (g *Graph) KShortestPaths(start, goal string, ctx rctx.Context, optimizeBy 
 		Nodes: append([]string(nil), nodes...),
 		Edges: cloneEdgeMap(edges),
 	}}
-	results[0].Score = g.scorePath(results[0].Nodes, results[0].Edges, ctx, optimizeBy)
+	results[0].Score = g.scorePath(results[0].Nodes, results[0].Edges, ctx, optimizeBy, departure)
 
 	accepted := map[string]struct{}{
 		pathKey(results[0].Nodes): {},
@@ -110,7 +111,7 @@ func (g *Graph) KShortestPaths(start, goal string, ctx rctx.Context, optimizeBy 
 				}
 			}
 
-			spurNodes, spurEdges := g.AstarWithConstraints(base.Nodes[spurIndex], goal, ctx, optimizeBy, constraints)
+			spurNodes, spurEdges := g.AstarWithConstraints(base.Nodes[spurIndex], goal, ctx, optimizeBy, departure, constraints)
 			if len(spurNodes) == 0 {
 				continue
 			}
@@ -133,7 +134,7 @@ func (g *Graph) KShortestPaths(start, goal string, ctx rctx.Context, optimizeBy 
 				PathResult: PathResult{
 					Nodes: candidateNodes,
 					Edges: candidateEdges,
-					Score: g.scorePath(candidateNodes, candidateEdges, ctx, optimizeBy),
+					Score: g.scorePath(candidateNodes, candidateEdges, ctx, optimizeBy, departure),
 				},
 			}
 
@@ -173,18 +174,20 @@ func (g *Graph) KShortestPaths(start, goal string, ctx rctx.Context, optimizeBy 
 	return results
 }
 
-func (g *Graph) scorePath(nodes []string, edges map[string]models.Edge, ctx rctx.Context, optimizeBy string) float64 {
+func (g *Graph) scorePath(nodes []string, edges map[string]models.Edge, ctx rctx.Context, optimizeBy string, departure time.Time) float64 {
 	if len(nodes) < 2 {
 		return 0
 	}
 
 	var score float64
+	currentTime := departure
 	for i := 0; i < len(nodes)-1; i++ {
 		edge, ok := edges[nodes[i+1]]
 		if !ok {
 			continue
 		}
-		score += EdgeWeight(edge, ctx, optimizeBy)
+		score += EdgeWeight(edge, ctx, optimizeBy, currentTime)
+		currentTime = currentTime.Add(time.Duration(EdgeWeight(edge, ctx, "time", currentTime) * float64(time.Minute)))
 	}
 
 	return score

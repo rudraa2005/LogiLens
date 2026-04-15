@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.schemas import AnalysisRequest, AnalysisResponse, Edge, InsightReport, Route, RouteStep
+from app.services.feedback import FeedbackCalibration
 from app.services.weighting import WeightAdjuster, clamp, normalize_score, severity
 
 
@@ -20,16 +21,37 @@ class RouteScorer:
     def __init__(self) -> None:
         self._adjuster = WeightAdjuster()
 
-    def analyze_news(self, request: AnalysisRequest, insight: InsightReport) -> AnalysisResponse:
-        return self._score(request, insight, self._profile_news())
+    def analyze_news(
+        self,
+        request: AnalysisRequest,
+        insight: InsightReport,
+        calibration: FeedbackCalibration | None = None,
+    ) -> AnalysisResponse:
+        return self._score(request, insight, self._profile_news(), calibration or FeedbackCalibration())
 
-    def predict_traffic(self, request: AnalysisRequest, insight: InsightReport) -> AnalysisResponse:
-        return self._score(request, insight, self._profile_traffic())
+    def predict_traffic(
+        self,
+        request: AnalysisRequest,
+        insight: InsightReport,
+        calibration: FeedbackCalibration | None = None,
+    ) -> AnalysisResponse:
+        return self._score(request, insight, self._profile_traffic(), calibration or FeedbackCalibration())
 
-    def route_confidence(self, request: AnalysisRequest, insight: InsightReport) -> AnalysisResponse:
-        return self._score(request, insight, self._profile_confidence())
+    def route_confidence(
+        self,
+        request: AnalysisRequest,
+        insight: InsightReport,
+        calibration: FeedbackCalibration | None = None,
+    ) -> AnalysisResponse:
+        return self._score(request, insight, self._profile_confidence(), calibration or FeedbackCalibration())
 
-    def _score(self, request: AnalysisRequest, insight: InsightReport, profile: EndpointProfile) -> AnalysisResponse:
+    def _score(
+        self,
+        request: AnalysisRequest,
+        insight: InsightReport,
+        profile: EndpointProfile,
+        calibration: FeedbackCalibration,
+    ) -> AnalysisResponse:
         route = request.route
         route_distance = route.total_distance or self._compute_total_distance(route)
         route_time = route.total_time or self._compute_total_time(route)
@@ -41,10 +63,19 @@ class RouteScorer:
             "weather": max(local_signals["weather"], normalize_score(insight.weather_risk)),
         }
 
-        adjustment = self._adjuster.adjust(profile.base_weights, request.ml_predictions, insight.weight_hints)
+        adjustment = self._adjuster.adjust(
+            profile.base_weights,
+            request.ml_predictions,
+            insight.weight_hints,
+            feedback_bias=calibration.risk_bias,
+        )
         weights = adjustment.profile
 
         route_modifiers = self._route_modifiers(request, route_distance, route_time)
+        context_severity = max(signal_values["traffic"], signal_values["news"], signal_values["weather"])
+        route_length_score = min(1.0, route_distance / 500.0)
+        alternative_gap_score = self._alternative_gap_score(request, route_time)
+
         risk_score = clamp(
             100.0
             * (
@@ -52,17 +83,22 @@ class RouteScorer:
                 + weights.news * signal_values["news"]
                 + weights.weather * signal_values["weather"]
             )
+            + context_severity * 14.0
+            + route_length_score * 8.0
             + route_modifiers["risk_bonus"]
             + insight.risk_score * 0.25,
             0.0,
             100.0,
         )
+        risk_score = clamp(risk_score * calibration.time_bias + calibration.risk_bias * 100.0, 0.0, 100.0)
 
         confidence_score = clamp(
             100.0
             - risk_score
             + insight.confidence_score * 0.35
+            + alternative_gap_score * 18.0
             + route_modifiers["confidence_bonus"]
+            + calibration.confidence_bias
             + profile.confidence_bias * 100.0,
             0.0,
             100.0,
@@ -76,6 +112,9 @@ class RouteScorer:
             risk_score=risk_score,
             confidence_score=confidence_score,
             route_modifiers=route_modifiers,
+            context_severity=context_severity,
+            alternative_gap_score=alternative_gap_score,
+            calibration=calibration,
         )
 
         return AnalysisResponse(
@@ -145,6 +184,9 @@ class RouteScorer:
         risk_score: float,
         confidence_score: float,
         route_modifiers: dict[str, float],
+        context_severity: float,
+        alternative_gap_score: float,
+        calibration: FeedbackCalibration,
     ) -> str:
         location = self._location_label(request)
         mode_label = {
@@ -161,9 +203,16 @@ class RouteScorer:
         parts.append(
             f"Risk sits at {risk_score:.1f}/100 and confidence at {confidence_score:.1f}/100 for {route_phrase}."
         )
+        parts.append(
+            f"Context severity is {context_severity * 100.0:.0f}/100 with an alternative gap score of {alternative_gap_score * 100.0:.0f}/100."
+        )
         if route_modifiers["confidence_bonus"] > 0:
             parts.append(
                 f"Route alternatives and ML predictions raised confidence by {route_modifiers['confidence_bonus']:.1f} points."
+            )
+        if calibration.samples > 0:
+            parts.append(
+                f"Feedback calibration is based on {calibration.samples} completed routes."
             )
         return " ".join(parts)
 
@@ -199,6 +248,17 @@ class RouteScorer:
             return step.distance
         return 1.0
 
+    def _alternative_gap_score(self, request: AnalysisRequest, route_time: float) -> float:
+        if not request.alternatives or route_time <= 0:
+            return 0.0
+
+        best_alt_time = min((alt.total_time for alt in request.alternatives if alt.total_time > 0), default=0.0)
+        if best_alt_time <= 0:
+            return 0.0
+
+        gap = max(0.0, best_alt_time - route_time)
+        return min(1.0, gap / max(route_time, 1.0))
+
     def _profile_news(self) -> EndpointProfile:
         return EndpointProfile(
             name="news",
@@ -228,4 +288,3 @@ class RouteScorer:
             weather_boost=0.33,
             confidence_bias=0.15,
         )
-

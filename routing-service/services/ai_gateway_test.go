@@ -78,6 +78,42 @@ func TestAIGatewayFallsBackOnTimeout(t *testing.T) {
 	}
 }
 
+func TestAIGatewayReturnsEdgeFactorsFromService(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/edge-factors" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if err := json.NewEncoder(w).Encode(map[string]any{
+			"edge_factors": map[string]float64{
+				"edge-1": 1.2,
+				"edge-2": 0.9,
+			},
+		}); err != nil {
+			t.Fatalf("encode response: %v", err)
+		}
+	}))
+	defer server.Close()
+
+	gateway := &AIGateway{
+		baseURL: server.URL,
+		client:  server.Client(),
+	}
+
+	factors, err := gateway.GetEdgeFactors(context.Background(), []models.Edge{
+		{ID: "edge-1"},
+		{ID: "edge-2"},
+	}, testRouteContext())
+	if err != nil {
+		t.Fatalf("expected successful edge factor call, got error: %v", err)
+	}
+	if factors["edge-1"] != 1.2 {
+		t.Fatalf("expected edge-1 factor 1.2, got %v", factors["edge-1"])
+	}
+	if factors["edge-2"] != 0.9 {
+		t.Fatalf("expected edge-2 factor 0.9, got %v", factors["edge-2"])
+	}
+}
+
 func testRouteResponse() RouteResponse {
 	return RouteResponse{
 		SourceNodeID:      "source-node",

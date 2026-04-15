@@ -2,6 +2,7 @@ package graph
 
 import (
 	"testing"
+	"time"
 
 	rctx "github.com/rudraa2005/LogiLens/routing-service/context"
 	"github.com/rudraa2005/LogiLens/routing-service/models"
@@ -20,7 +21,7 @@ func TestKShortestPathsReturnsMultipleRoutes(t *testing.T) {
 		{ID: "b-t", From: "b", To: "t", Distance: 1, Time: 2, Cost: 2},
 	})
 
-	paths := g.KShortestPaths("s", "t", rctx.BuildContext(), "time", 5)
+	paths := g.KShortestPaths("s", "t", rctx.BuildContext(), "time", time.Date(2026, 4, 15, 8, 0, 0, 0, time.UTC), 5)
 	if len(paths) != 2 {
 		t.Fatalf("expected 2 routes, got %d", len(paths))
 	}

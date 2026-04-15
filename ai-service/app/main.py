@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 
 from app.config import Settings
-from app.schemas import AnalysisRequest, AnalysisResponse
+from app.schemas import AnalysisRequest, AnalysisResponse, EdgeFactorResponse, FeedbackRequest, FeedbackResponse
 from app.services.service import AIService
 
 
@@ -38,8 +38,15 @@ def create_app(service: AIService | None = None) -> FastAPI:
     async def route_confidence(payload: AnalysisRequest) -> AnalysisResponse:
         return await ai_service.route_confidence(payload)
 
+    @app.post("/feedback", response_model=FeedbackResponse)
+    async def feedback(payload: FeedbackRequest) -> FeedbackResponse:
+        return await ai_service.submit_feedback(payload)
+
+    @app.post("/edge-factors", response_model=EdgeFactorResponse)
+    async def edge_factors(payload: AnalysisRequest) -> EdgeFactorResponse:
+        return await ai_service.edge_factors(payload)
+
     return app
 
 
 app = create_app()
-

@@ -28,7 +28,7 @@ type TrafficSignal struct {
 }
 
 type TrafficFetcher interface {
-	Fetch(bounds BoundingBox) ([]TrafficSignal, error)
+	Fetch(bounds BoundingBox, at time.Time) ([]TrafficSignal, error)
 }
 
 const (
@@ -62,7 +62,7 @@ type trafficIncident struct {
 	} `json:"properties"`
 }
 
-func (f *TomTomTrafficFetcher) Fetch(bounds BoundingBox) ([]TrafficSignal, error) {
+func (f *TomTomTrafficFetcher) Fetch(bounds BoundingBox, at time.Time) ([]TrafficSignal, error) {
 	incidents, err := fetchTrafficIncidents(bounds)
 	if err != nil {
 		return nil, err
