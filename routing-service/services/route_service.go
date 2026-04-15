@@ -171,8 +171,8 @@ func (rs *RouteService) BuildRoute(path []string, edges map[string]models.Edge, 
 			EdgeID:     edge.ID,
 			ModeID:     edge.ModeID,
 			Distance:   edge.Distance,
-			Time:       graph.EdgeWeight(edge, routeContext, "time", currentTime),
-			Cost:       graph.EdgeWeight(edge, routeContext, "cost", currentTime),
+			Time:       graph.TravelTime(edge, routeContext, currentTime),
+			Cost:       graph.CostWeight(edge, routeContext, currentTime),
 			Geometry:   edge.Geometry,
 		}
 
@@ -328,7 +328,7 @@ func (rs *RouteService) computeRoutesBetweenNodes(
 	}
 	if rs.aiGateway != nil && rs.graph != nil {
 		aiFactors, _ := rs.aiGateway.GetEdgeFactors(ctx, graphEdgesSlice(rs.graph.Edges), ctxData)
-		applyAIFactors(&ctxData, aiFactors)
+		applyAIFactors(&ctxData, smoothAIFactors(rs.graph, aiFactors))
 	}
 
 	if optimizeBy == "" {
@@ -357,17 +357,53 @@ func applyAIFactors(ctx *rctx.Context, factors EdgeAIFactors) {
 	}
 	for edgeID, aiFactor := range factors {
 		if aiFactor == 1.0 {
-			if _, exists := ctx.EdgeFactors[edgeID]; !exists {
-				continue
+			if _, exists := ctx.BaseEdgeFactors[edgeID]; !exists {
+				if _, timedExists := ctx.EdgeFactors[edgeID]; !timedExists {
+					continue
+				}
 			}
 		}
-		item := ctx.EdgeFactors[edgeID]
+		item := ctx.BaseEdgeFactors[edgeID]
 		item.AIFactor = aiFactor
-		ctx.EdgeFactors[edgeID] = item
+		ctx.BaseEdgeFactors[edgeID] = item
+
+		if buckets, ok := ctx.EdgeFactors[edgeID]; ok {
+			for bucket, bucketFactors := range buckets {
+				bucketFactors.AIFactor = aiFactor
+				buckets[bucket] = bucketFactors
+			}
+			continue
+		}
 		if !ctx.DepartureTime.IsZero() {
 			ctx.AddTimedEdgeFactor(edgeID, ctx.DepartureTime, rctx.EdgeContext{AIFactor: aiFactor})
 		}
 	}
+}
+
+func smoothAIFactors(g *graph.Graph, factors EdgeAIFactors) EdgeAIFactors {
+	if len(factors) == 0 {
+		return factors
+	}
+
+	smoothed := make(EdgeAIFactors, len(factors))
+	for edgeID, value := range factors {
+		total := value
+		count := 1.0
+
+		if g != nil {
+			for _, neighborID := range g.GetNeighborEdges(edgeID) {
+				neighborValue, ok := factors[neighborID]
+				if !ok {
+					continue
+				}
+				total += neighborValue
+				count++
+			}
+		}
+
+		smoothed[edgeID] = total / count
+	}
+	return smoothed
 }
 
 func (rs *RouteService) routeResponsesFromPaths(paths []graph.PathResult, sourceID, destinationID string, routeContext rctx.Context, departure time.Time) []RouteResponse {

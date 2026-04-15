@@ -187,7 +187,7 @@ func (g *Graph) scorePath(nodes []string, edges map[string]models.Edge, ctx rctx
 			continue
 		}
 		score += EdgeWeight(edge, ctx, optimizeBy, currentTime)
-		currentTime = currentTime.Add(time.Duration(EdgeWeight(edge, ctx, "time", currentTime) * float64(time.Minute)))
+		currentTime = currentTime.Add(time.Duration(TravelTime(edge, ctx, currentTime) * float64(time.Minute)))
 	}
 
 	return score

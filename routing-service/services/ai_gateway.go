@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	rctx "github.com/rudraa2005/LogiLens/routing-service/context"
@@ -18,6 +19,7 @@ import (
 
 const defaultAIServiceURL = "http://127.0.0.1:8085"
 const defaultAIServiceTimeout = 5 * time.Second
+const defaultEdgeFactorCacheTTL = 10 * time.Minute
 
 type RouteInsights struct {
 	RiskScore       float64 `json:"risk_score"`
@@ -34,15 +36,26 @@ type EdgeAIFactors map[string]float64
 type AIGateway struct {
 	baseURL string
 	client  *http.Client
+
+	cacheTTL         time.Duration
+	edgeFactorCache  map[string]cachedEdgeFactors
+	edgeFactorCacheM sync.RWMutex
 }
 
 type aiRouteRequest struct {
 	Location      string             `json:"location,omitempty"`
+	Region        string             `json:"region,omitempty"`
+	TimeBucket    string             `json:"time_bucket,omitempty"`
 	Edges         []aiEdge           `json:"edges"`
 	Context       aiContext          `json:"context"`
 	Route         aiRoute            `json:"route"`
 	Alternatives  []aiRoute          `json:"alternatives,omitempty"`
 	MLPredictions map[string]float64 `json:"ml_predictions,omitempty"`
+}
+
+type cachedEdgeFactors struct {
+	expiresAt time.Time
+	factors   EdgeAIFactors
 }
 
 type aiEdge struct {
@@ -107,11 +120,20 @@ func NewAIGatewayFromEnv() *AIGateway {
 		}
 	}
 
+	cacheTTL := defaultEdgeFactorCacheTTL
+	if raw := strings.TrimSpace(os.Getenv("AI_EDGE_FACTOR_CACHE_TTL_SECONDS")); raw != "" {
+		if seconds, err := strconv.Atoi(raw); err == nil && seconds > 0 {
+			cacheTTL = time.Duration(seconds) * time.Second
+		}
+	}
+
 	return &AIGateway{
 		baseURL: normalizeBaseURL(baseURL),
 		client: &http.Client{
 			Timeout: timeout,
 		},
+		cacheTTL:        cacheTTL,
+		edgeFactorCache: make(map[string]cachedEdgeFactors),
 	}
 }
 
@@ -126,10 +148,30 @@ func (a *AIGateway) GetEdgeFactors(ctx context.Context, edges []models.Edge, rou
 	if strings.TrimSpace(a.baseURL) == "" {
 		return fallback, errors.New("ai service url is empty")
 	}
+	if a.cacheTTL <= 0 {
+		a.cacheTTL = defaultEdgeFactorCacheTTL
+	}
+	if a.edgeFactorCache == nil {
+		a.edgeFactorCache = make(map[string]cachedEdgeFactors)
+	}
+
+	cacheKey := edgeFactorCacheKey(routeContext)
+	if cached, ok := a.cachedEdgeFactors(cacheKey); ok {
+		return mergeEdgeFactorFallback(fallback, cached), nil
+	}
+
+	bucket := rctx.TimeBucket(routeContext.DepartureTime)
 
 	payload := aiRouteRequest{
-		Location: "",
-		Edges:    graphEdges(edges),
+		Location: routeContext.LocationName,
+		Region:   routeContext.LocationName,
+		TimeBucket: func() string {
+			if bucket.IsZero() {
+				return ""
+			}
+			return bucket.Format(time.RFC3339)
+		}(),
+		Edges: graphEdges(edges),
 		Context: aiContext{
 			LocationName: routeContext.LocationName,
 			EdgeFactors:  routeEdgeFactors(routeContext),
@@ -170,6 +212,7 @@ func (a *AIGateway) GetEdgeFactors(ctx context.Context, edges []models.Edge, rou
 			fallback[edgeID] = clampAIFactor(value)
 		}
 	}
+	a.storeEdgeFactors(cacheKey, fallback)
 	return fallback, nil
 }
 
@@ -277,10 +320,7 @@ func routeRiskFromContext(route RouteResponse, routeContext rctx.Context) float6
 	totalRisk := 0.0
 
 	for _, step := range route.Steps {
-		factors, ok := routeContext.EdgeFactors[step.EdgeID]
-		if !ok {
-			continue
-		}
+		factors := routeContext.EdgeContextAt(step.EdgeID, routeContext.DepartureTime)
 
 		traffic := severity(factors.TrafficFactor)
 		weather := severity(factors.WeatherFactor)
@@ -358,8 +398,8 @@ func routeSteps(route RouteResponse) []aiStep {
 }
 
 func routeEdgeFactors(routeContext rctx.Context) map[string]aiEdgeContext {
-	factors := make(map[string]aiEdgeContext, len(routeContext.EdgeFactors))
-	for edgeID, item := range routeContext.EdgeFactors {
+	factors := make(map[string]aiEdgeContext, len(routeContext.BaseEdgeFactors))
+	for edgeID, item := range routeContext.BaseEdgeFactors {
 		factors[edgeID] = aiEdgeContext{
 			TrafficFactor: item.TrafficFactor,
 			WeatherFactor: item.WeatherFactor,
@@ -440,4 +480,65 @@ func mathRound(value float64) float64 {
 		return float64(int(value - 0.5))
 	}
 	return float64(int(value + 0.5))
+}
+
+func edgeFactorCacheKey(routeContext rctx.Context) string {
+	region := strings.TrimSpace(strings.ToLower(routeContext.LocationName))
+	if region == "" {
+		region = "global"
+	}
+	bucket := rctx.TimeBucket(routeContext.DepartureTime)
+	if bucket.IsZero() {
+		return region
+	}
+	return region + "|" + bucket.Format(time.RFC3339)
+}
+
+func (a *AIGateway) cachedEdgeFactors(key string) (EdgeAIFactors, bool) {
+	if a == nil || key == "" {
+		return nil, false
+	}
+	a.edgeFactorCacheM.RLock()
+	entry, ok := a.edgeFactorCache[key]
+	a.edgeFactorCacheM.RUnlock()
+	if !ok || time.Now().After(entry.expiresAt) {
+		return nil, false
+	}
+	return cloneEdgeFactors(entry.factors), true
+}
+
+func (a *AIGateway) storeEdgeFactors(key string, factors EdgeAIFactors) {
+	if a == nil || key == "" || len(factors) == 0 {
+		return
+	}
+	a.edgeFactorCacheM.Lock()
+	defer a.edgeFactorCacheM.Unlock()
+	if a.edgeFactorCache == nil {
+		a.edgeFactorCache = make(map[string]cachedEdgeFactors)
+	}
+	a.edgeFactorCache[key] = cachedEdgeFactors{
+		expiresAt: time.Now().Add(a.cacheTTL),
+		factors:   cloneEdgeFactors(factors),
+	}
+}
+
+func mergeEdgeFactorFallback(fallback EdgeAIFactors, overrides EdgeAIFactors) EdgeAIFactors {
+	merged := cloneEdgeFactors(fallback)
+	for edgeID, factor := range overrides {
+		if _, ok := merged[edgeID]; ok {
+			merged[edgeID] = factor
+		}
+	}
+	return merged
+}
+
+func cloneEdgeFactors(values EdgeAIFactors) EdgeAIFactors {
+	if len(values) == 0 {
+		return EdgeAIFactors{}
+	}
+	cloned := make(EdgeAIFactors, len(values))
+	for key, value := range values {
+		cloned[key] = value
+	}
+	return cloned
 }

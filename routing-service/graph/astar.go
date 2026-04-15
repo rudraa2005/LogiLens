@@ -3,6 +3,7 @@ package graph
 import (
 	"container/heap"
 	"math"
+	"strings"
 	"time"
 
 	rctx "github.com/rudraa2005/LogiLens/routing-service/context"
@@ -50,12 +51,12 @@ func (g *Graph) heuristic(a, b, optimizeBy string) float64 {
 
 	distanceKm := haversineDistanceKm(n1.Latitude, n1.Longitude, n2.Latitude, n2.Longitude)
 
-	switch optimizeBy {
+	switch strings.ToLower(strings.TrimSpace(optimizeBy)) {
 	case "time":
-		if g.maxSpeedKPH <= 0 {
+		if g.heuristicSpeedKPH <= 0 {
 			return 0
 		}
-		return distanceKm / g.maxSpeedKPH * 60.0
+		return distanceKm / g.heuristicSpeedKPH * 60.0
 	case "distance":
 		return distanceKm
 	default:
@@ -104,10 +105,19 @@ func (g *Graph) AstarWithConstraints(start string, goal string, ctx rctx.Context
 			if !departure.IsZero() && !math.IsInf(gScoreTime[current], 1) {
 				eta = departure.Add(time.Duration(gScoreTime[current] * float64(time.Minute)))
 			}
-			adjustedTime := EdgeWeight(edge, ctx, "time", eta)
-			weight := EdgeWeight(edge, ctx, optimizeBy, eta)
+			combinedFactor := CombinedFactor(edge, ctx, eta)
+			travelTime := edge.Time * combinedFactor
+			weight := edge.Distance
+			switch strings.ToLower(optimizeBy) {
+			case "cost":
+				weight = edge.Cost * combinedFactor
+			case "distance":
+				weight = edge.Distance
+			default:
+				weight = travelTime
+			}
 			tentativeCost := gScoreCost[current] + weight
-			tentativeTime := gScoreTime[current] + adjustedTime
+			tentativeTime := gScoreTime[current] + travelTime
 
 			if tentativeCost < gScoreCost[neighbour] {
 				cameFrom[neighbour] = current

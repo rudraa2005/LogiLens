@@ -40,7 +40,7 @@ func TestExplainRouteSummarizesAvoidedIssuesAndSavings(t *testing.T) {
 		},
 	}
 	ctx := rctx.Context{
-		EdgeFactors: map[string]rctx.EdgeContext{
+		BaseEdgeFactors: map[string]rctx.EdgeContext{
 			"edge-alt-1": {TrafficFactor: 1.9},
 			"edge-alt-3": {WeatherFactor: 1.8},
 		},

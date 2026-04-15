@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -221,6 +222,30 @@ func (r *RouteRepository) ListRecentRoutes(ctx context.Context, limit int) ([]mo
 	}
 
 	return routes, nil
+}
+
+func (r *RouteRepository) CountRouteVersionsSince(ctx context.Context, routeID string, since time.Time) (int, error) {
+	query := `
+		WITH RECURSIVE route_family AS (
+			SELECT id, parent_route_id, created_at
+			FROM routes
+			WHERE id = $1
+			UNION
+			SELECT r.id, r.parent_route_id, r.created_at
+			FROM routes r
+			JOIN route_family rf
+				ON r.id = rf.parent_route_id OR r.parent_route_id = rf.id
+		)
+		SELECT COUNT(DISTINCT id)
+		FROM route_family
+		WHERE COALESCE(created_at, NOW()) >= $2
+	`
+
+	var count int
+	if err := r.db.QueryRow(ctx, query, routeID, since).Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func routeByID(ctx context.Context, querier queryRower, routeID string) (models.Route, error) {

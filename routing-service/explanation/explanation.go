@@ -91,10 +91,7 @@ func collectRouteIssues(best comparison.Route, alternatives []comparison.Route, 
 			}
 			seenEdge[step.EdgeID] = struct{}{}
 
-			factors, ok := ctx.EdgeFactors[step.EdgeID]
-			if !ok {
-				continue
-			}
+			factors := ctx.EdgeContextAt(step.EdgeID, ctx.DepartureTime)
 
 			label := routeLabel(step)
 			if label == "" {

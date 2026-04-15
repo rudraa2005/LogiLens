@@ -67,6 +67,8 @@ class AnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     location: str | None = None
+    region: str | None = None
+    time_bucket: str | None = None
     edges: list[Edge] = Field(default_factory=list)
     context: Context = Field(default_factory=Context)
     route: Route

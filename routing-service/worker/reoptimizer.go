@@ -14,14 +14,17 @@ import (
 
 const (
 	defaultReoptimizationInterval = 3 * time.Hour
-	defaultImprovementThreshold   = 0.05
+	defaultImprovementThreshold   = 0.07
 	defaultReoptimizationBatch    = 50
+	defaultReoptimizationCooldown = 2 * time.Hour
+	defaultMaxDailyUpdates        = 3
 )
 
 type RouteRepository interface {
 	ListRecentRoutes(ctx context.Context, limit int) ([]models.Route, error)
 	GetRouteByID(ctx context.Context, routeID string) (models.Route, error)
 	CreateNewVersion(ctx context.Context, oldRouteID string, route models.Route, steps []models.RouteStep) (string, error)
+	CountRouteVersionsSince(ctx context.Context, routeID string, since time.Time) (int, error)
 }
 
 type RoutePlanner interface {
@@ -39,6 +42,8 @@ type ReoptimizationWorker struct {
 	interval             time.Duration
 	improvementThreshold float64
 	batchSize            int
+	cooldown             time.Duration
+	maxDailyUpdates      int
 	logger               *log.Logger
 }
 
@@ -58,6 +63,8 @@ func NewReoptimizationWorker(repo RouteRepository, planner RoutePlanner, notifie
 		interval:             reoptimizationIntervalFromEnv(),
 		improvementThreshold: reoptimizationThresholdFromEnv(),
 		batchSize:            reoptimizationBatchSizeFromEnv(),
+		cooldown:             reoptimizationCooldownFromEnv(),
+		maxDailyUpdates:      reoptimizationMaxDailyUpdatesFromEnv(),
 		logger:               log.New(os.Stdout, "reoptimizer: ", log.LstdFlags),
 	}
 }
@@ -101,6 +108,19 @@ func (w *ReoptimizationWorker) RecomputeRoute(ctx context.Context, routeID strin
 	stored, err := w.repo.GetRouteByID(ctx, routeID)
 	if err != nil {
 		return err
+	}
+	now := time.Now().UTC()
+	if w.cooldown > 0 && !stored.CreatedAt.IsZero() && now.Sub(stored.CreatedAt) < w.cooldown {
+		return nil
+	}
+	if w.maxDailyUpdates > 0 {
+		count, err := w.repo.CountRouteVersionsSince(ctx, stored.ID, now.Add(-24*time.Hour))
+		if err != nil {
+			return err
+		}
+		if count >= w.maxDailyUpdates {
+			return nil
+		}
 	}
 
 	recomputed, err := w.planner.RecomputeStoredRoute(ctx, stored, "time")
@@ -216,6 +236,30 @@ func reoptimizationBatchSizeFromEnv() int {
 	value, err := strconv.Atoi(raw)
 	if err != nil || value <= 0 {
 		return defaultReoptimizationBatch
+	}
+	return value
+}
+
+func reoptimizationCooldownFromEnv() time.Duration {
+	raw := strings.TrimSpace(os.Getenv("REOPTIMIZER_COOLDOWN_MINUTES"))
+	if raw == "" {
+		return defaultReoptimizationCooldown
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return defaultReoptimizationCooldown
+	}
+	return time.Duration(value) * time.Minute
+}
+
+func reoptimizationMaxDailyUpdatesFromEnv() int {
+	raw := strings.TrimSpace(os.Getenv("REOPTIMIZER_MAX_DAILY_UPDATES"))
+	if raw == "" {
+		return defaultMaxDailyUpdates
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return defaultMaxDailyUpdates
 	}
 	return value
 }

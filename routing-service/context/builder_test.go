@@ -86,7 +86,7 @@ func TestBuildForRouteUsesRouteBoundsAndCenterPoint(t *testing.T) {
 		t.Fatalf("unexpected news query: got %q", news.query)
 	}
 
-	factors, ok := ctx.EdgeFactors["edge-1"]
+	factors, ok := ctx.BaseEdgeFactors["edge-1"]
 	if !ok {
 		t.Fatal("expected edge-1 factors to be populated")
 	}
@@ -100,7 +100,7 @@ func TestBuildForRouteUsesRouteBoundsAndCenterPoint(t *testing.T) {
 		t.Fatalf("expected news factor on edge-1, got %v", factors.NewsFactor)
 	}
 
-	factors, ok = ctx.EdgeFactors["edge-2"]
+	factors, ok = ctx.BaseEdgeFactors["edge-2"]
 	if !ok {
 		t.Fatal("expected edge-2 factors to be populated")
 	}
@@ -119,6 +119,9 @@ func TestBuildForRouteUsesRouteBoundsAndCenterPoint(t *testing.T) {
 	}
 	if _, ok := ctx.EdgeArrivalTimes["edge-2"]; !ok {
 		t.Fatal("expected edge-2 arrival time to be populated")
+	}
+	if len(ctx.EdgeFactors["edge-1"]) == 0 {
+		t.Fatal("expected edge-1 time buckets to be populated")
 	}
 }
 

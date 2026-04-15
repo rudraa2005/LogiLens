@@ -2,6 +2,8 @@ package context
 
 import "time"
 
+const TimeBucketSize = 15 * time.Minute
+
 type EdgeContext struct {
 	TrafficFactor float64
 	WeatherFactor float64
@@ -9,57 +11,34 @@ type EdgeContext struct {
 	AIFactor      float64
 }
 
-type TimedEdgeContext struct {
-	EffectiveAt time.Time
-	Factors     EdgeContext
-}
-
 type Context struct {
 	LocationName     string
 	DepartureTime    time.Time
-	EdgeFactors      map[string]EdgeContext
+	BaseEdgeFactors  map[string]EdgeContext
+	EdgeFactors      map[string]map[time.Time]EdgeContext
 	EdgeArrivalTimes map[string]time.Time
-	EdgeTimeFactors  map[string][]TimedEdgeContext
 }
 
 func BuildContext() Context {
 	return Context{
-		EdgeFactors:      make(map[string]EdgeContext),
+		BaseEdgeFactors:  make(map[string]EdgeContext),
+		EdgeFactors:      make(map[string]map[time.Time]EdgeContext),
 		EdgeArrivalTimes: make(map[string]time.Time),
-		EdgeTimeFactors:  make(map[string][]TimedEdgeContext),
 	}
 }
 
 func (c Context) EdgeContextAt(edgeID string, eta time.Time) EdgeContext {
-	base := c.EdgeFactors[edgeID]
-	entries := c.EdgeTimeFactors[edgeID]
-	if len(entries) == 0 || eta.IsZero() {
+	base := c.BaseEdgeFactors[edgeID]
+	if eta.IsZero() {
 		return normalizeEdgeContext(base)
 	}
 
-	selected := entries[0]
-	foundPast := false
-	for _, entry := range entries {
-		if entry.EffectiveAt.IsZero() {
-			continue
-		}
-		if !entry.EffectiveAt.After(eta) {
-			if !foundPast || entry.EffectiveAt.After(selected.EffectiveAt) {
-				selected = entry
-				foundPast = true
-			}
-			continue
-		}
-
-		if foundPast {
-			continue
-		}
-		if selected.EffectiveAt.IsZero() || entry.EffectiveAt.Before(selected.EffectiveAt) {
-			selected = entry
-		}
+	bucket := TimeBucket(eta)
+	buckets, ok := c.EdgeFactors[edgeID]
+	if !ok {
+		return normalizeEdgeContext(base)
 	}
-
-	return normalizeEdgeContext(mergeEdgeContext(base, selected.Factors))
+	return normalizeEdgeContext(mergeEdgeContext(base, buckets[bucket]))
 }
 
 func (c *Context) AddTimedEdgeFactor(edgeID string, eta time.Time, delta EdgeContext) {
@@ -67,20 +46,14 @@ func (c *Context) AddTimedEdgeFactor(edgeID string, eta time.Time, delta EdgeCon
 		return
 	}
 
-	hour := eta.UTC().Truncate(time.Hour)
-	existing := c.EdgeTimeFactors[edgeID]
-	for i := range existing {
-		if existing[i].EffectiveAt.Equal(hour) {
-			existing[i].Factors = mergeEdgeContext(existing[i].Factors, delta)
-			c.EdgeTimeFactors[edgeID] = existing
-			return
-		}
+	if c.EdgeFactors == nil {
+		c.EdgeFactors = make(map[string]map[time.Time]EdgeContext)
 	}
-
-	c.EdgeTimeFactors[edgeID] = append(c.EdgeTimeFactors[edgeID], TimedEdgeContext{
-		EffectiveAt: hour,
-		Factors:     delta,
-	})
+	bucket := TimeBucket(eta)
+	if _, ok := c.EdgeFactors[edgeID]; !ok {
+		c.EdgeFactors[edgeID] = make(map[time.Time]EdgeContext)
+	}
+	c.EdgeFactors[edgeID][bucket] = mergeEdgeContext(c.EdgeFactors[edgeID][bucket], delta)
 }
 
 func mergeEdgeContext(existing, delta EdgeContext) EdgeContext {
@@ -97,6 +70,13 @@ func mergeEdgeContext(existing, delta EdgeContext) EdgeContext {
 		existing.AIFactor = delta.AIFactor
 	}
 	return existing
+}
+
+func TimeBucket(value time.Time) time.Time {
+	if value.IsZero() {
+		return time.Time{}
+	}
+	return value.UTC().Truncate(TimeBucketSize)
 }
 
 func normalizeEdgeContext(value EdgeContext) EdgeContext {

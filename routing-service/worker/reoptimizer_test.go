@@ -10,10 +10,13 @@ import (
 )
 
 type repoStub struct {
-	route    models.Route
-	created  models.Route
-	steps    []models.RouteStep
-	oldRoute string
+	route          models.Route
+	created        models.Route
+	steps          []models.RouteStep
+	oldRoute       string
+	versionCount   int
+	countRouteID   string
+	countSinceTime time.Time
 }
 
 func (r *repoStub) ListRecentRoutes(ctx context.Context, limit int) ([]models.Route, error) {
@@ -29,6 +32,12 @@ func (r *repoStub) CreateNewVersion(ctx context.Context, oldRouteID string, rout
 	r.created = route
 	r.steps = steps
 	return "route-2", nil
+}
+
+func (r *repoStub) CountRouteVersionsSince(ctx context.Context, routeID string, since time.Time) (int, error) {
+	r.countRouteID = routeID
+	r.countSinceTime = since
+	return r.versionCount, nil
 }
 
 type plannerStub struct {
@@ -61,7 +70,7 @@ func TestRecomputeRouteCreatesNewVersionWhenImproved(t *testing.T) {
 			TotalTime:         20,
 			TotalCost:         10,
 			TotalDistance:     15,
-			CreatedAt:         time.Now().UTC(),
+			CreatedAt:         time.Now().UTC().Add(-4 * time.Hour),
 		},
 	}
 	planner := &plannerStub{
@@ -80,6 +89,7 @@ func TestRecomputeRouteCreatesNewVersionWhenImproved(t *testing.T) {
 
 	worker := NewReoptimizationWorker(repo, planner, nil)
 	worker.improvementThreshold = 0.01
+	worker.cooldown = 0
 
 	if err := worker.RecomputeRoute(context.Background(), "route-1"); err != nil {
 		t.Fatalf("recompute route: %v", err)
@@ -89,5 +99,43 @@ func TestRecomputeRouteCreatesNewVersionWhenImproved(t *testing.T) {
 	}
 	if len(repo.steps) != 1 {
 		t.Fatalf("expected steps to be replaced, got %d", len(repo.steps))
+	}
+}
+
+func TestRecomputeRouteSkipsDuringCooldown(t *testing.T) {
+	repo := &repoStub{
+		route: models.Route{
+			ID:        "route-1",
+			CreatedAt: time.Now().UTC().Add(-30 * time.Minute),
+		},
+	}
+	worker := NewReoptimizationWorker(repo, &plannerStub{}, nil)
+	worker.cooldown = 2 * time.Hour
+
+	if err := worker.RecomputeRoute(context.Background(), "route-1"); err != nil {
+		t.Fatalf("recompute route: %v", err)
+	}
+	if repo.oldRoute != "" {
+		t.Fatal("expected route version creation to be skipped during cooldown")
+	}
+}
+
+func TestRecomputeRouteSkipsAfterMaxDailyUpdates(t *testing.T) {
+	repo := &repoStub{
+		route: models.Route{
+			ID:        "route-1",
+			CreatedAt: time.Now().UTC().Add(-4 * time.Hour),
+		},
+		versionCount: 3,
+	}
+	worker := NewReoptimizationWorker(repo, &plannerStub{}, nil)
+	worker.cooldown = 0
+	worker.maxDailyUpdates = 3
+
+	if err := worker.RecomputeRoute(context.Background(), "route-1"); err != nil {
+		t.Fatalf("recompute route: %v", err)
+	}
+	if repo.oldRoute != "" {
+		t.Fatal("expected route version creation to be skipped after hitting daily limit")
 	}
 }

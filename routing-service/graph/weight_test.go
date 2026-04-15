@@ -16,7 +16,7 @@ func TestEdgeWeightUsesOptimizationModeAndContextFactors(t *testing.T) {
 		Cost:     4,
 	}
 	ctx := rctx.Context{
-		EdgeFactors: map[string]rctx.EdgeContext{
+		BaseEdgeFactors: map[string]rctx.EdgeContext{
 			"edge-1": {
 				TrafficFactor: 1.2,
 				WeatherFactor: 1.5,

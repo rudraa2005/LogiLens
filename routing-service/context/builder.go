@@ -290,7 +290,7 @@ func (c *ContextService) mapSignalMatches(lat, lng, radiusKm float64, fallback f
 }
 
 func applyFactor(ctx *Context, edgeID string, delta EdgeContext) {
-	ctx.EdgeFactors[edgeID] = mergeEdgeContext(ctx.EdgeFactors[edgeID], delta)
+	ctx.BaseEdgeFactors[edgeID] = mergeEdgeContext(ctx.BaseEdgeFactors[edgeID], delta)
 }
 
 func distributeFactor(ctx *Context, matches []EdgeDistance, delta EdgeContext, arrival time.Time) {

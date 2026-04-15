@@ -171,7 +171,7 @@ func TestComputeRouteMergesAIInsightsWithoutBlocking(t *testing.T) {
 	repo := &fakeRouteRepo{}
 	ctxBuilder := &fakeContextBuilder{
 		ctx: rctx.Context{
-			EdgeFactors: map[string]rctx.EdgeContext{
+			BaseEdgeFactors: map[string]rctx.EdgeContext{
 				"edge-1": {TrafficFactor: 1.4, WeatherFactor: 1.1, NewsFactor: 1.6},
 			},
 		},
@@ -398,5 +398,96 @@ func TestNewRouteServiceHandlesNilGraph(t *testing.T) {
 	}
 	if svc.contextBuilder != nil {
 		t.Fatal("expected nil context builder for nil graph")
+	}
+}
+
+func TestSmoothAIFactorsReducesSingleEdgeSpike(t *testing.T) {
+	g := graph.BuildGraph(
+		[]models.Node{
+			{NodeID: "a"},
+			{NodeID: "b"},
+			{NodeID: "c"},
+		},
+		[]models.Edge{
+			{ID: "a-b", From: "a", To: "b"},
+			{ID: "b-c", From: "b", To: "c"},
+		},
+	)
+
+	smoothed := smoothAIFactors(g, EdgeAIFactors{
+		"a-b": 1.5,
+		"b-c": 1.0,
+	})
+	if smoothed["a-b"] >= 1.5 {
+		t.Fatalf("expected smoothing to reduce spike, got %v", smoothed["a-b"])
+	}
+	if smoothed["a-b"] <= 1.0 {
+		t.Fatalf("expected smoothing to retain some penalty, got %v", smoothed["a-b"])
+	}
+}
+
+func TestNeutralAIFactorsMatchBaselineRoute(t *testing.T) {
+	g := graph.BuildGraph(
+		[]models.Node{
+			{NodeID: "s", Latitude: 0, Longitude: 0},
+			{NodeID: "a", Latitude: 0, Longitude: 1},
+			{NodeID: "b", Latitude: 1, Longitude: 0},
+			{NodeID: "t", Latitude: 1, Longitude: 1},
+		},
+		[]models.Edge{
+			{ID: "s-a", From: "s", To: "a", Distance: 1, Time: 1, Cost: 1},
+			{ID: "a-t", From: "a", To: "t", Distance: 1, Time: 1, Cost: 1},
+			{ID: "s-b", From: "s", To: "b", Distance: 1, Time: 2, Cost: 1},
+			{ID: "b-t", From: "b", To: "t", Distance: 1, Time: 2, Cost: 1},
+		},
+	)
+	geo := &fakeGeocoder{
+		coords: map[string][2]float64{
+			"source place":      {0, 0},
+			"destination place": {1, 1},
+		},
+	}
+	departure := time.Date(2026, 4, 15, 8, 0, 0, 0, time.UTC)
+
+	baselineSvc := &RouteService{graph: g, geocoder: geo, repo: &fakeRouteRepo{}}
+	baseline, err := baselineSvc.ComputeRoute(context.Background(), RouteRequest{
+		Source:      "source place",
+		Destination: "destination place",
+		OptimizeBy:  "time",
+	}, departure)
+	if err != nil {
+		t.Fatalf("baseline route: %v", err)
+	}
+
+	neutralSvc := &RouteService{
+		graph:    g,
+		geocoder: geo,
+		repo:     &fakeRouteRepo{},
+		aiGateway: &fakeAIGateway{
+			factors: EdgeAIFactors{
+				"s-a": 1.0,
+				"a-t": 1.0,
+				"s-b": 1.0,
+				"b-t": 1.0,
+			},
+			insights: &RouteInsights{},
+		},
+	}
+	withNeutralAI, err := neutralSvc.ComputeRoute(context.Background(), RouteRequest{
+		Source:      "source place",
+		Destination: "destination place",
+		OptimizeBy:  "time",
+	}, departure)
+	if err != nil {
+		t.Fatalf("neutral AI route: %v", err)
+	}
+
+	if len(baseline.Steps) != len(withNeutralAI.Steps) {
+		t.Fatalf("expected identical route length, got baseline=%d ai=%d", len(baseline.Steps), len(withNeutralAI.Steps))
+	}
+	for i := range baseline.Steps {
+		if baseline.Steps[i].EdgeID != withNeutralAI.Steps[i].EdgeID {
+			t.Fatalf("expected identical baseline route with neutral AI, got baseline=%q ai=%q", baseline.Steps[i].EdgeID, withNeutralAI.Steps[i].EdgeID)
+		}
 	}
 }

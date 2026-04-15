@@ -79,10 +79,12 @@ func TestAIGatewayFallsBackOnTimeout(t *testing.T) {
 }
 
 func TestAIGatewayReturnsEdgeFactorsFromService(t *testing.T) {
+	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/edge-factors" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
+		requests++
 		if err := json.NewEncoder(w).Encode(map[string]any{
 			"edge_factors": map[string]float64{
 				"edge-1": 1.2,
@@ -95,8 +97,10 @@ func TestAIGatewayReturnsEdgeFactorsFromService(t *testing.T) {
 	defer server.Close()
 
 	gateway := &AIGateway{
-		baseURL: server.URL,
-		client:  server.Client(),
+		baseURL:         server.URL,
+		client:          server.Client(),
+		cacheTTL:        time.Minute,
+		edgeFactorCache: make(map[string]cachedEdgeFactors),
 	}
 
 	factors, err := gateway.GetEdgeFactors(context.Background(), []models.Edge{
@@ -111,6 +115,17 @@ func TestAIGatewayReturnsEdgeFactorsFromService(t *testing.T) {
 	}
 	if factors["edge-2"] != 0.9 {
 		t.Fatalf("expected edge-2 factor 0.9, got %v", factors["edge-2"])
+	}
+
+	factors, err = gateway.GetEdgeFactors(context.Background(), []models.Edge{
+		{ID: "edge-1"},
+		{ID: "edge-2"},
+	}, testRouteContext())
+	if err != nil {
+		t.Fatalf("expected cached edge factor call, got error: %v", err)
+	}
+	if requests != 1 {
+		t.Fatalf("expected one outbound request due to cache, got %d", requests)
 	}
 }
 
@@ -137,7 +152,7 @@ func testRouteResponse() RouteResponse {
 
 func testRouteContext() rctx.Context {
 	return rctx.Context{
-		EdgeFactors: map[string]rctx.EdgeContext{
+		BaseEdgeFactors: map[string]rctx.EdgeContext{
 			"edge-1": {TrafficFactor: 1.5, WeatherFactor: 1.1, NewsFactor: 1.2},
 		},
 	}

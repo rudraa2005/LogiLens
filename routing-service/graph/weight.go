@@ -14,24 +14,31 @@ const (
 )
 
 func EdgeWeight(edge models.Edge, ctx rctx.Context, optimizeBy string, eta time.Time) float64 {
-	baseTime := edge.Time
-	baseCost := edge.Cost
-	baseDistance := edge.Distance
+	switch strings.ToLower(strings.TrimSpace(optimizeBy)) {
+	case "cost":
+		return CostWeight(edge, ctx, eta)
+	case "distance":
+		return edge.Distance
+	default:
+		return TravelTime(edge, ctx, eta)
+	}
+}
 
+func CombinedFactor(edge models.Edge, ctx rctx.Context, eta time.Time) float64 {
 	factors := ctx.EdgeContextAt(edge.ID, eta)
 	traffic := clampFactor(factors.TrafficFactor)
 	weather := clampFactor(factors.WeatherFactor)
 	news := clampFactor(factors.NewsFactor)
 	aiFactor := clampAIFactor(factors.AIFactor)
+	return traffic * weather * news * aiFactor
+}
 
-	switch strings.ToLower(strings.TrimSpace(optimizeBy)) {
-	case "cost":
-		return baseCost * traffic * weather * news * aiFactor
-	case "distance":
-		return baseDistance
-	default:
-		return baseTime * traffic * weather * news * aiFactor
-	}
+func TravelTime(edge models.Edge, ctx rctx.Context, eta time.Time) float64 {
+	return edge.Time * CombinedFactor(edge, ctx, eta)
+}
+
+func CostWeight(edge models.Edge, ctx rctx.Context, eta time.Time) float64 {
+	return edge.Cost * CombinedFactor(edge, ctx, eta)
 }
 
 func clampAIFactor(value float64) float64 {
