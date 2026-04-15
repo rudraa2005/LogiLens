@@ -24,6 +24,29 @@ message RouteResponse {
     double total_distance = 3;
     double total_time = 4;
     double total_cost = 5;
+
+    repeated RouteAlternative alternatives = 6;
+
+    string explanation = 7;
+
+    double time_saved = 8;
+    double cost_saved = 9;
+
+    double confidence_score = 10;
+
+    repeated LatLng polyline = 11;
+}
+
+message RouteAlternative {
+    string route_id = 1;
+
+    repeated RouteStep steps = 2;
+
+    double total_distance = 3;
+    double total_time = 4;
+    double total_cost = 5;
+
+    repeated LatLng polyline = 6;
 }
 
 message LatLng {

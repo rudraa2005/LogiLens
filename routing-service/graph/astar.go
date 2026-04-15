@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"math"
 
-	"github.com/rudraa2005/LogiLens/routing-service/context"
+	rctx "github.com/rudraa2005/LogiLens/routing-service/context"
 	"github.com/rudraa2005/LogiLens/routing-service/models"
 )
 
@@ -53,7 +53,11 @@ func (g *Graph) heuristic(a, b string) float64 {
 	return math.Sqrt(dx*dx + dy*dy)
 }
 
-func (g *Graph) Astar(start string, goal string, ctx context.Context, optimizeBy string) ([]string, map[string]models.Edge) {
+func (g *Graph) Astar(start string, goal string, ctx rctx.Context, optimizeBy string) ([]string, map[string]models.Edge) {
+	return g.AstarWithConstraints(start, goal, ctx, optimizeBy, SearchConstraints{})
+}
+
+func (g *Graph) AstarWithConstraints(start string, goal string, ctx rctx.Context, optimizeBy string, constraints SearchConstraints) ([]string, map[string]models.Edge) {
 	openSet := &PriorityQueue{}
 	heap.Init(openSet)
 
@@ -79,7 +83,10 @@ func (g *Graph) Astar(start string, goal string, ctx context.Context, optimizeBy
 
 		for _, edge := range g.Adjacency[current] {
 			neighbour := edge.To
-			weight := context.GetEdgeWeight(edge, ctx, optimizeBy)
+			if constraints.blockedNode(neighbour) || constraints.blockedEdge(edge.ID) {
+				continue
+			}
+			weight := EdgeWeight(edge, ctx, optimizeBy)
 			tentative := gScore[current] + weight
 
 			if tentative < gScore[neighbour] {

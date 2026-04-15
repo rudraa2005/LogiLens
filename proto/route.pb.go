@@ -191,14 +191,20 @@ func (x *RouteRequest) GetAllowedModes() []TransportMode {
 }
 
 type RouteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RouteId       string                 `protobuf:"bytes,1,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
-	Steps         []*RouteStep           `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
-	TotalDistance float64                `protobuf:"fixed64,3,opt,name=total_distance,json=totalDistance,proto3" json:"total_distance,omitempty"`
-	TotalTime     float64                `protobuf:"fixed64,4,opt,name=total_time,json=totalTime,proto3" json:"total_time,omitempty"`
-	TotalCost     float64                `protobuf:"fixed64,5,opt,name=total_cost,json=totalCost,proto3" json:"total_cost,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	RouteId         string                 `protobuf:"bytes,1,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	Steps           []*RouteStep           `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
+	TotalDistance   float64                `protobuf:"fixed64,3,opt,name=total_distance,json=totalDistance,proto3" json:"total_distance,omitempty"`
+	TotalTime       float64                `protobuf:"fixed64,4,opt,name=total_time,json=totalTime,proto3" json:"total_time,omitempty"`
+	TotalCost       float64                `protobuf:"fixed64,5,opt,name=total_cost,json=totalCost,proto3" json:"total_cost,omitempty"`
+	Alternatives    []*RouteAlternative    `protobuf:"bytes,6,rep,name=alternatives,proto3" json:"alternatives,omitempty"`
+	Explanation     string                 `protobuf:"bytes,7,opt,name=explanation,proto3" json:"explanation,omitempty"`
+	TimeSaved       float64                `protobuf:"fixed64,8,opt,name=time_saved,json=timeSaved,proto3" json:"time_saved,omitempty"`
+	CostSaved       float64                `protobuf:"fixed64,9,opt,name=cost_saved,json=costSaved,proto3" json:"cost_saved,omitempty"`
+	ConfidenceScore float64                `protobuf:"fixed64,10,opt,name=confidence_score,json=confidenceScore,proto3" json:"confidence_score,omitempty"`
+	Polyline        []*LatLng              `protobuf:"bytes,11,rep,name=polyline,proto3" json:"polyline,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *RouteResponse) Reset() {
@@ -266,6 +272,132 @@ func (x *RouteResponse) GetTotalCost() float64 {
 	return 0
 }
 
+func (x *RouteResponse) GetAlternatives() []*RouteAlternative {
+	if x != nil {
+		return x.Alternatives
+	}
+	return nil
+}
+
+func (x *RouteResponse) GetExplanation() string {
+	if x != nil {
+		return x.Explanation
+	}
+	return ""
+}
+
+func (x *RouteResponse) GetTimeSaved() float64 {
+	if x != nil {
+		return x.TimeSaved
+	}
+	return 0
+}
+
+func (x *RouteResponse) GetCostSaved() float64 {
+	if x != nil {
+		return x.CostSaved
+	}
+	return 0
+}
+
+func (x *RouteResponse) GetConfidenceScore() float64 {
+	if x != nil {
+		return x.ConfidenceScore
+	}
+	return 0
+}
+
+func (x *RouteResponse) GetPolyline() []*LatLng {
+	if x != nil {
+		return x.Polyline
+	}
+	return nil
+}
+
+type RouteAlternative struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RouteId       string                 `protobuf:"bytes,1,opt,name=route_id,json=routeId,proto3" json:"route_id,omitempty"`
+	Steps         []*RouteStep           `protobuf:"bytes,2,rep,name=steps,proto3" json:"steps,omitempty"`
+	TotalDistance float64                `protobuf:"fixed64,3,opt,name=total_distance,json=totalDistance,proto3" json:"total_distance,omitempty"`
+	TotalTime     float64                `protobuf:"fixed64,4,opt,name=total_time,json=totalTime,proto3" json:"total_time,omitempty"`
+	TotalCost     float64                `protobuf:"fixed64,5,opt,name=total_cost,json=totalCost,proto3" json:"total_cost,omitempty"`
+	Polyline      []*LatLng              `protobuf:"bytes,6,rep,name=polyline,proto3" json:"polyline,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RouteAlternative) Reset() {
+	*x = RouteAlternative{}
+	mi := &file_proto_route_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RouteAlternative) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RouteAlternative) ProtoMessage() {}
+
+func (x *RouteAlternative) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_route_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RouteAlternative.ProtoReflect.Descriptor instead.
+func (*RouteAlternative) Descriptor() ([]byte, []int) {
+	return file_proto_route_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RouteAlternative) GetRouteId() string {
+	if x != nil {
+		return x.RouteId
+	}
+	return ""
+}
+
+func (x *RouteAlternative) GetSteps() []*RouteStep {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+func (x *RouteAlternative) GetTotalDistance() float64 {
+	if x != nil {
+		return x.TotalDistance
+	}
+	return 0
+}
+
+func (x *RouteAlternative) GetTotalTime() float64 {
+	if x != nil {
+		return x.TotalTime
+	}
+	return 0
+}
+
+func (x *RouteAlternative) GetTotalCost() float64 {
+	if x != nil {
+		return x.TotalCost
+	}
+	return 0
+}
+
+func (x *RouteAlternative) GetPolyline() []*LatLng {
+	if x != nil {
+		return x.Polyline
+	}
+	return nil
+}
+
 type LatLng struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Lat           float64                `protobuf:"fixed64,1,opt,name=lat,proto3" json:"lat,omitempty"`
@@ -276,7 +408,7 @@ type LatLng struct {
 
 func (x *LatLng) Reset() {
 	*x = LatLng{}
-	mi := &file_proto_route_proto_msgTypes[2]
+	mi := &file_proto_route_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -288,7 +420,7 @@ func (x *LatLng) String() string {
 func (*LatLng) ProtoMessage() {}
 
 func (x *LatLng) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_route_proto_msgTypes[2]
+	mi := &file_proto_route_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -301,7 +433,7 @@ func (x *LatLng) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatLng.ProtoReflect.Descriptor instead.
 func (*LatLng) Descriptor() ([]byte, []int) {
-	return file_proto_route_proto_rawDescGZIP(), []int{2}
+	return file_proto_route_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *LatLng) GetLat() float64 {
@@ -333,7 +465,7 @@ type RouteStep struct {
 
 func (x *RouteStep) Reset() {
 	*x = RouteStep{}
-	mi := &file_proto_route_proto_msgTypes[3]
+	mi := &file_proto_route_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +477,7 @@ func (x *RouteStep) String() string {
 func (*RouteStep) ProtoMessage() {}
 
 func (x *RouteStep) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_route_proto_msgTypes[3]
+	mi := &file_proto_route_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +490,7 @@ func (x *RouteStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RouteStep.ProtoReflect.Descriptor instead.
 func (*RouteStep) Descriptor() ([]byte, []int) {
-	return file_proto_route_proto_rawDescGZIP(), []int{3}
+	return file_proto_route_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RouteStep) GetFrom() string {
@@ -420,7 +552,7 @@ const file_proto_route_proto_rawDesc = "" +
 	"\vdestination\x18\x02 \x01(\tR\vdestination\x128\n" +
 	"\voptimize_by\x18\x03 \x01(\x0e2\x17.route.OptimizationTypeR\n" +
 	"optimizeBy\x129\n" +
-	"\rallowed_modes\x18\x04 \x03(\x0e2\x14.route.TransportModeR\fallowedModes\"\xb7\x01\n" +
+	"\rallowed_modes\x18\x04 \x03(\x0e2\x14.route.TransportModeR\fallowedModes\"\xaa\x03\n" +
 	"\rRouteResponse\x12\x19\n" +
 	"\broute_id\x18\x01 \x01(\tR\arouteId\x12&\n" +
 	"\x05steps\x18\x02 \x03(\v2\x10.route.RouteStepR\x05steps\x12%\n" +
@@ -428,7 +560,25 @@ const file_proto_route_proto_rawDesc = "" +
 	"\n" +
 	"total_time\x18\x04 \x01(\x01R\ttotalTime\x12\x1d\n" +
 	"\n" +
-	"total_cost\x18\x05 \x01(\x01R\ttotalCost\",\n" +
+	"total_cost\x18\x05 \x01(\x01R\ttotalCost\x12;\n" +
+	"\falternatives\x18\x06 \x03(\v2\x17.route.RouteAlternativeR\falternatives\x12 \n" +
+	"\vexplanation\x18\a \x01(\tR\vexplanation\x12\x1d\n" +
+	"\n" +
+	"time_saved\x18\b \x01(\x01R\ttimeSaved\x12\x1d\n" +
+	"\n" +
+	"cost_saved\x18\t \x01(\x01R\tcostSaved\x12)\n" +
+	"\x10confidence_score\x18\n" +
+	" \x01(\x01R\x0fconfidenceScore\x12)\n" +
+	"\bpolyline\x18\v \x03(\v2\r.route.LatLngR\bpolyline\"\xe5\x01\n" +
+	"\x10RouteAlternative\x12\x19\n" +
+	"\broute_id\x18\x01 \x01(\tR\arouteId\x12&\n" +
+	"\x05steps\x18\x02 \x03(\v2\x10.route.RouteStepR\x05steps\x12%\n" +
+	"\x0etotal_distance\x18\x03 \x01(\x01R\rtotalDistance\x12\x1d\n" +
+	"\n" +
+	"total_time\x18\x04 \x01(\x01R\ttotalTime\x12\x1d\n" +
+	"\n" +
+	"total_cost\x18\x05 \x01(\x01R\ttotalCost\x12)\n" +
+	"\bpolyline\x18\x06 \x03(\v2\r.route.LatLngR\bpolyline\",\n" +
 	"\x06LatLng\x12\x10\n" +
 	"\x03lat\x18\x01 \x01(\x01R\x03lat\x12\x10\n" +
 	"\x03lng\x18\x02 \x01(\x01R\x03lng\"\xc8\x01\n" +
@@ -465,28 +615,33 @@ func file_proto_route_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_route_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_route_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_route_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_route_proto_goTypes = []any{
-	(OptimizationType)(0), // 0: route.OptimizationType
-	(TransportMode)(0),    // 1: route.TransportMode
-	(*RouteRequest)(nil),  // 2: route.RouteRequest
-	(*RouteResponse)(nil), // 3: route.RouteResponse
-	(*LatLng)(nil),        // 4: route.LatLng
-	(*RouteStep)(nil),     // 5: route.RouteStep
+	(OptimizationType)(0),    // 0: route.OptimizationType
+	(TransportMode)(0),       // 1: route.TransportMode
+	(*RouteRequest)(nil),     // 2: route.RouteRequest
+	(*RouteResponse)(nil),    // 3: route.RouteResponse
+	(*RouteAlternative)(nil), // 4: route.RouteAlternative
+	(*LatLng)(nil),           // 5: route.LatLng
+	(*RouteStep)(nil),        // 6: route.RouteStep
 }
 var file_proto_route_proto_depIdxs = []int32{
-	0, // 0: route.RouteRequest.optimize_by:type_name -> route.OptimizationType
-	1, // 1: route.RouteRequest.allowed_modes:type_name -> route.TransportMode
-	5, // 2: route.RouteResponse.steps:type_name -> route.RouteStep
-	1, // 3: route.RouteStep.mode:type_name -> route.TransportMode
-	4, // 4: route.RouteStep.geometry:type_name -> route.LatLng
-	2, // 5: route.RouteService.ComputeRoute:input_type -> route.RouteRequest
-	3, // 6: route.RouteService.ComputeRoute:output_type -> route.RouteResponse
-	6, // [6:7] is the sub-list for method output_type
-	5, // [5:6] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	0,  // 0: route.RouteRequest.optimize_by:type_name -> route.OptimizationType
+	1,  // 1: route.RouteRequest.allowed_modes:type_name -> route.TransportMode
+	6,  // 2: route.RouteResponse.steps:type_name -> route.RouteStep
+	4,  // 3: route.RouteResponse.alternatives:type_name -> route.RouteAlternative
+	5,  // 4: route.RouteResponse.polyline:type_name -> route.LatLng
+	6,  // 5: route.RouteAlternative.steps:type_name -> route.RouteStep
+	5,  // 6: route.RouteAlternative.polyline:type_name -> route.LatLng
+	1,  // 7: route.RouteStep.mode:type_name -> route.TransportMode
+	5,  // 8: route.RouteStep.geometry:type_name -> route.LatLng
+	2,  // 9: route.RouteService.ComputeRoute:input_type -> route.RouteRequest
+	3,  // 10: route.RouteService.ComputeRoute:output_type -> route.RouteResponse
+	10, // [10:11] is the sub-list for method output_type
+	9,  // [9:10] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_proto_route_proto_init() }
@@ -500,7 +655,7 @@ func file_proto_route_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_route_proto_rawDesc), len(file_proto_route_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

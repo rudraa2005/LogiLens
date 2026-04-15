@@ -7,6 +7,7 @@ import (
 
 	proto "github.com/rudraa2005/LogiLens/proto"
 	"github.com/rudraa2005/LogiLens/routing-service/db"
+	"github.com/rudraa2005/LogiLens/routing-service/geoservice"
 	"github.com/rudraa2005/LogiLens/routing-service/graph"
 	"github.com/rudraa2005/LogiLens/routing-service/repository"
 	"github.com/rudraa2005/LogiLens/routing-service/server"
@@ -34,7 +35,12 @@ func main() {
 	if len(g.Nodes) == 0 {
 		log.Fatal("routing graph is empty; seed the edges table with route geometry before running")
 	}
-	routeService := services.NewRouteService(routeRepo, g)
+	geoSvc, err := geoservice.NewFromEnv()
+	if err != nil {
+		log.Fatal("geocoding setup failed:", err)
+	}
+
+	routeService := services.NewRouteService(routeRepo, g, geoSvc)
 
 	grpcServer := grpc.NewServer()
 	proto.RegisterRouteServiceServer(grpcServer, server.NewRouteServer(routeService))
